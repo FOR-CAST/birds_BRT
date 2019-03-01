@@ -1,6 +1,6 @@
 ---
 title: "birdsNWT"
-author: ""
+author: "Tati Micheletti"
 date: "04 February 2019"
 output: pdf_document
 ---
