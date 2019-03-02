@@ -1,7 +1,8 @@
 classifyWetlands <- function(LCC = P(sim)$baseLayer,
                              wetLayerInput = sim$rasterDUCKS,
                              pathData = dataPath(sim),
-                             studyArea = sim$studyArea){
+                             studyArea = sim$studyArea,
+                             rasterToMatch = sim$rasterToMatch){
   
   Require("LandR")
   Require("sf")
@@ -11,7 +12,7 @@ classifyWetlands <- function(LCC = P(sim)$baseLayer,
   # Load LCC layer
     rasLCC <- LandR::prepInputsLCC(year = LCC, destinationPath = pathData, 
                          studyArea = studyArea, filename2 = paste0("LCC", LCC), 
-                         format = "GTiff")
+                         format = "GTiff", overwrite = TRUE)
     if (as.character(crs(rasLCC))!=as.character(crs(wetLayerInput))){
       rasLCC <- raster::projectRaster(from = rasLCC, crs = crs(wetLayerInput))      
     }

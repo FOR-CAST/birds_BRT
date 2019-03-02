@@ -33,9 +33,9 @@ knitr::opts_chunk$set(echo = TRUE)
 update.packages(checkBuilt = TRUE)
 devtools::install_github("PredictiveEcology/reproducible@development")
 devtools::install_github("achubaty/amc@development")
-devtools::install_github("PredictiveEcology/pemisc@development")
-devtools::install_github("PredictiveEcology/map@development")
-devtools::install_github("PredictiveEcology/LandR@development") # Updates SpaDES.tools and SpaDES.core quickPlot
+devtools::install_github("PredictiveEcology/pemisc@development") # Updates SpaDES.core and quickPlot
+devtools::install_github("PredictiveEcology/map@development") 
+devtools::install_github("PredictiveEcology/LandR@development")  # Updates SpaDES.tools
 ```
 
 ### Please, make sure you loaded the project file in RStudio. This file can be found in "NWT/modules/birdsNWT/" ()
@@ -56,10 +56,10 @@ message("Your current temporary directory is ", tempdir())
 
 # Set up paths
 paths <- list(
-inputPath = file.path(workDirectory, "inputs"),
-outputPath = file.path(workDirectory, "outputs"),
-modulePath = file.path(workDirectory, "modules"),
-cachePath <- file.path(workDirectory, "cache")
+inputPath = tempdir(),
+outputPath = tempdir(),
+modulePath = dirname(getwd()),
+cachePath = tempdir()
 )
 
 SpaDES.core::setPaths(modulePath = paths$modulePath, inputPath = paths$inputPath, 
@@ -72,8 +72,8 @@ parameters <- list(
 birdsNWT = list(
     "baseLayer" = 2005,
     "overwritePredictions" = TRUE,
-    "useTestSpeciesLayers" = FALSE,
-    "useParallel" = TRUE
+    "useTestSpeciesLayers" = TRUE,
+    "useParallel" = FALSE # Using parallel in windows is currently not working.
   )
 )
 

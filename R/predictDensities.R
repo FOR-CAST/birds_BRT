@@ -7,7 +7,9 @@ predictDensities <- function(birdSpecies = sim$birdsList,
                              overwritePredictions = P(sim)$overwritePredictions,
                              pathData = dataPath(sim),
                              useParallel = FALSE,
-                             nCores = 1) {
+                             nCores = 1,
+                             studyArea = sim$studyArea,
+                             rasterToMatch = sim$rasterToMatch) {
 
   if (useParallel == FALSE){
     
@@ -18,7 +20,9 @@ predictDensities <- function(birdSpecies = sim$birdsList,
                                     currentTime = currentTime,
                                     modelList = modelList,
                                     overwritePredictions = overwritePredictions,
-                                    pathData = pathData)
+                                    pathData = pathData,
+                                   studyArea = studyArea,
+                                   rasterToMatch = rasterToMatch)
     
   } else {
     message(crayon::red(paste0("Paralellizing for:\n", paste(birdSpecies, collapse = "\n"), 

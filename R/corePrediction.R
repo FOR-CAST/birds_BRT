@@ -4,7 +4,9 @@ corePrediction <- function(x, successionLayers = successionLayers,
                            currentTime = currentTime,
                            modelList = modelList,
                            overwritePredictions = overwritePredictions,
-                           pathData = pathData){
+                           pathData = pathData,
+                           studyArea = studyArea,
+                           rasterToMatch = rasterToMatch){
   
   reproducible::Require("magrittr")
   
@@ -21,9 +23,19 @@ corePrediction <- function(x, successionLayers = successionLayers,
       nameStackRas2 <- names(models$coefficients)[3]
     } else {
       if ("gbm" %in% class(models)){ # If gbm, do everything in here, else, do outside
+        if (raster::extent(successionLayers)!=extent(staticLayers)||
+            as.character(raster::crs(successionLayers))!=base::as.character(raster::crs(staticLayers))){
+          message("crs and or extents don't align. Trying postProcessing succession layers")
+          successionLayers <- lapply(X = seq_len(nlayers(successionLayers)), FUN = function(layer){
+            lay <- postProcess(subStaticLayers[[layer]], studyArea = studyArea, rasterToMatch = rasterToMatch)
+            return(lay)
+          })
+          staticLayers <- raster::stack(successionLayers)
+        }
         stkLays <- raster::stack(successionLayers, staticLayers)
         predictedName <- file.path(pathData, paste0("predicted/predicted", x, "Year", currentTime, ".tif"))
         if (isTRUE(overwritePredictions)||!file.exists(predictedName)){
+          browser()
           predicted <- gbm::predict.gbm(object = models, newdata = raster::as.data.frame(stkLays, row.names = TRUE),
                                         type = "response",
                                         n.trees = models$n.trees)

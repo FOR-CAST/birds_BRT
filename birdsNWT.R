@@ -34,7 +34,7 @@ defineModule(sim, list(
                  sourceURL = "https://drive.google.com/open?id=1obSvU4ml8xa8WMQhQprd6heRrN47buvI"),
     expectsInput(objectName = "urlStaticLayers", objectClass = "RasterLayer", 
                  desc = "Static Layers (WAT, URBAG, lLED25, DEV25 and landform) url", 
-                 sourceURL = "https://drive.google.com/open?id=1P4grDYDffVyVXvMjM-RwzpuH1deZuvL3"),
+                 sourceURL = "https://drive.google.com/open?id=1OzWUtBvVwBPfYiI_L_2S1kj8V6CzB92D"),
     expectsInput(objectName = "studyArea", objectClass = "SpatialPolygonDataFrame", 
                  desc = "Study area for the prediction. Currently only available for NWT", 
                  sourceURL = "https://drive.google.com/open?id=1P4grDYDffVyVXvMjM-RwzpuH1deZuvL3"),
@@ -70,20 +70,16 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
     loadModels = {
       sim$birdModels <- Cache(loadBirdModels, birdsList = sim$birdsList,
                               folderUrl = extractURL("urlModels"),
-                              # cloudFolderID = sim$cloudFolderID,
                               pathData = dataPath(sim),
-                              # useCloud = TRUE,
-                              omitArgs = c("pathData"))#, "cloudFolderID", "useCloud")) # NOT WORKING WITH CLOUDCACHE [ FIX ]
+                              omitArgs = "pathData")
       message("Bird models loaded for: \n", paste(sim$birdsList, collapse = "\n"))
     },
     loadFixedLayers = {
       sim$staticLayers <- Cache(loadStaticLayers, fileURL = extractURL("urlStaticLayers"),
                                 pathData = dataPath(sim), 
-                                # cloudFolderID = sim$cloudFolderID,
                                 studyArea = sim$studyArea,
                                 rasterToMatch = sim$rasterToMatch,
-                                # useCloud = TRUE,
-                                omitArgs = c("pathData"))#, "cloudFolderID", "useCloud")) # NOT WORKING WITH CLOUDCACHE [ FIX ]
+                                omitArgs = "pathData")
       message("The following static layers have been loaded: \n", 
               paste(names(sim$staticLayers), collapse = "\n"))
     },
@@ -92,7 +88,9 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
         message("Using test layers for species. Predictions will be static and identical to original data.")
         sim$successionLayers <- Cache(loadTestSpeciesLayers, 
                                       modelList = sim$birdModels,
-                                      pathData = dataPath(sim))
+                                      pathData = dataPath(sim),
+                                      studyArea = sim$studyArea,
+                                      rasterToMatch = sim$rasterToMatch)
       } else {
         if (any(!suppliedElsewhere("simulatedBiomassMap", sim), 
                 !suppliedElsewhere("cohortData", sim),
@@ -107,10 +105,8 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                       sppEquiv = sim$sppEquiv,
                                       pixelGroupMap = sim$pixelGroupMap,
                                       pathData = dataPath(sim),
-                                      # cloudFolderID = sim$cloudFolderID,
                                       userTags = paste0("successionLayers", time(sim)),
-                                      # useCloud = TRUE,
-                                      omitArgs = c("pathData"))#, "cloudFolderID", "useCloud"))  # NOT WORKING WITH CLOUDCACHE [ FIX ]
+                                      omitArgs = "pathData")
       }
       
       sim$wetlandRaster <- Cache(prepInputsLayers_DUCKS, destinationPath = dataPath(sim), 
@@ -137,12 +133,10 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                                                overwritePredictions = P(sim)$overwritePredictions,
                                                                useParallel = P(sim)$useParallel,
                                                                nCores = P(sim)$nCores,
-                                                               # cloudFolderID = sim$cloudFolderID,
+                                                               studyArea = sim$studyArea,
+                                                               rasterToMatch = sim$rasterToMatch,
                                                                omitArgs = c("destinationPath", "nCores", 
                                                                             "useParallel", "pathData"),
-                                                                            # "cloudFolderID", 
-                                                                            # "useCloud"),
-                                                               # useCloud = TRUE,
                                                                userTags = paste0("predictedBirds", time(sim)))
 
         sim <- scheduleEvent(sim, time(sim) + 10, "birdsNWT", "predictBirds")
