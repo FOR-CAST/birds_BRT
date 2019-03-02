@@ -38,7 +38,7 @@ devtools::install_github("PredictiveEcology/map@development")
 devtools::install_github("PredictiveEcology/LandR@development")  # Updates SpaDES.tools
 ```
 
-### Please, make sure you loaded the project file in RStudio. This file can be found in "NWT/modules/birdsNWT/" ()
+### Please, make sure you loaded the project file in RStudio. This file can be found in "NWT/modules/birdsNWT/"
 
 ### Module Usage
 

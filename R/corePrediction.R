@@ -35,7 +35,6 @@ corePrediction <- function(x, successionLayers = successionLayers,
         stkLays <- raster::stack(successionLayers, staticLayers)
         predictedName <- file.path(pathData, paste0("predicted/predicted", x, "Year", currentTime, ".tif"))
         if (isTRUE(overwritePredictions)||!file.exists(predictedName)){
-          browser()
           predicted <- gbm::predict.gbm(object = models, newdata = raster::as.data.frame(stkLays, row.names = TRUE),
                                         type = "response",
                                         n.trees = models$n.trees)
