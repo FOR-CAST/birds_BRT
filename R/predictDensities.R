@@ -45,6 +45,8 @@ predictDensities <- function(birdSpecies = sim$birdsList,
                                                       currentTime = currentTime,
                                                       modelList = modelList,
                                                       overwritePredictions = overwritePredictions,
+                                                      studyArea = studyArea,
+                                                      rasterToMatch = rasterToMatch,
                                                       pathData = pathData))
     
   }
