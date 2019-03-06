@@ -10,7 +10,8 @@ loadTestSpeciesLayers <- function(successionTables = sim$successionTables,
                                url = "https://drive.google.com/open?id=1QiwMJpbQYeBH5ifNZDEXe04bHmn-w4Oc",
                                destinationPath = pathData, fun = "raster::stack")
   staticLayers <- lapply(X = seq_len(nlayers(specieLayers)), FUN = function(layer){
-    lay <- postProcess(specieLayers[[layer]], studyArea = studyArea, rasterToMatch = rasterToMatch)
+    lay <- postProcess(specieLayers[[layer]], studyArea = studyArea, 
+                       rasterToMatch = rasterToMatch, destinationPath = pathData)
     names(lay) <- names(specieLayers[[layer]])
     return(lay)
   })
