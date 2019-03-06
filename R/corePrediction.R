@@ -44,7 +44,9 @@ corePrediction <- function(x, successionLayers = successionLayers,
             reproducible::fastMask(y = studyArea)
           
           names(basePlot) <- paste0("predicted", x)
-          raster::writeRaster(x = basePlot, filename = predictedName,
+          predictedMasked <- reproducible::postProcess(x = basePlot, rasterToMatch = uplandsRaster, 
+                                                       maskWithRTM = TRUE)
+          raster::writeRaster(x = predictedMasked, filename = predictedName,
                               format = "GTiff", overwrite = TRUE)
           
         }
@@ -78,9 +80,7 @@ corePrediction <- function(x, successionLayers = successionLayers,
                                            inputModel = models, 
                                            x = x, 
                                            tileYear = currentTime))
-    predictedMasked <- reproducible::postProcess(x = predicted, rasterToMatch = uplandsRaster, 
-                                                 maskWithRTM = TRUE)
-    raster::writeRaster(x = predictedMasked, filename = predictedName, 
+    raster::writeRaster(x = predicted, filename = predictedName, 
                         format = "GTiff", overwrite = TRUE)
   }
   predicted <- raster(predictedName)
