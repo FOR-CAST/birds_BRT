@@ -45,7 +45,7 @@ corePrediction <- function(x, successionLayers = successionLayers,
           
           names(basePlot) <- paste0("predicted", x)
           predictedMasked <- reproducible::postProcess(x = basePlot, rasterToMatch = uplandsRaster, 
-                                                       maskWithRTM = TRUE)
+                                                       maskWithRTM = TRUE, destinationPath = pathData, filename2 = NULL)
           raster::writeRaster(x = predictedMasked, filename = predictedName,
                               format = "GTiff", overwrite = TRUE)
           
