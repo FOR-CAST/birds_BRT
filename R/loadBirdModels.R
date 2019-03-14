@@ -20,7 +20,8 @@ loadBirdModels <- function(birdsList = sim$birdsList,
             path = file.path(modelsPath, modelFile), overwrite = TRUE,
             omitArgs = "path")
     }
-    return(get(load(file.path(modelsPath, modelFile))))
+
+    return(load(file.path(modelsPath, modelFile))) # get() removed
   })
   names(downloadedModels) <- birdsList
   return(downloadedModels)

@@ -19,6 +19,7 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching?"),
     defineParameter("useParallel", "logical", FALSE, NA, NA, "Should bird prediction be parallelized?"),
     defineParameter("useTestSpeciesLayers", "logical", TRUE, NA, NA, "Use testing layers if forest succesion is not available?"),
+    defineParameter("predictionInterval", "numeric", 10, NA, NA, "Use testing layers if forest succesion is not available?"),
     defineParameter("nCores", "character|numeric", "auto", NA, NA, paste0("If parallelizing, how many cores to use?",
                                                                           " Use 'auto' (90% of available), or numeric")),
     defineParameter(name = "baseLayer", class = "character", default = 2005, min = NA, max = NA, 
@@ -139,7 +140,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                                                             "useParallel", "pathData"),
                                                                userTags = paste0("predictedBirds", time(sim)))
 
-        sim <- scheduleEvent(sim, time(sim) + 10, "birdsNWT", "predictBirds")
+        sim <- scheduleEvent(sim, time(sim) + P(sim)$predictionInterval, "birdsNWT", "predictBirds")
       
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],

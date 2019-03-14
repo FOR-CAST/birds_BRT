@@ -16,7 +16,9 @@ loadStaticLayers <- function(fileURL = extractURL("urlStaticLayers"),
                                  x = stkNames)]
   subStaticLayers <- raster::subset(x = stk, subset = fixedLayers)
   staticLayers <- lapply(X = seq_len(nlayers(subStaticLayers)), FUN = function(layer){
-    lay <- postProcess(subStaticLayers[[layer]], studyArea = studyArea, rasterToMatch = rasterToMatch)
+    lay <- postProcess(subStaticLayers[[layer]], studyArea = studyArea, 
+                       rasterToMatch = rasterToMatch, destinationPath = pathData,
+                       filename2 = NULL)
     return(lay)
   })
   staticLayers <- raster::stack(staticLayers)
