@@ -11,7 +11,8 @@ loadTestSpeciesLayers <- function(successionTables = sim$successionTables,
                                destinationPath = pathData, fun = "raster::stack")
   staticLayers <- lapply(X = seq_len(nlayers(specieLayers)), FUN = function(layer){
     lay <- postProcess(specieLayers[[layer]], studyArea = studyArea, 
-                       rasterToMatch = rasterToMatch, destinationPath = pathData)
+                       rasterToMatch = rasterToMatch, destinationPath = pathData,
+                       filename2 = NULL)
     names(lay) <- names(specieLayers[[layer]])
     return(lay)
   })
