@@ -25,6 +25,12 @@ defineModule(sim, list(
                     desc = "Which layer should be used? LCC05 or LCC10?")
   ),
   inputObjects = bind_rows(
+    expectsInput(objectName = "wetlandRaster", objectClass = "RasterLayer",
+                 desc = "Wetland raster for creating upland raster",
+                 sourceURL = NA),
+    expectsInput(objectName = "uplandsRaster", objectClass = "RasterLayer",
+                 desc = "Upland raster for excluding wetlands and water from bird's predictions. LandR has NOT been tested for wetlands",
+                 sourceURL = NA),
     expectsInput(objectName = "birdsList", objectClass = "character", 
                  desc = "Bird species to be predicted", sourceURL = NA),
     expectsInput(objectName = "cloudFolderID", objectClass = "character", 
