@@ -9,11 +9,12 @@ corePrediction <- function(bird, successionLayers = successionLayers,
                            rasterToMatch = rasterToMatch){
 
   message("Cluster open... starting to run") # MAYBE IT IS THE LIBRARY? NOPE. It didn't print this message
-  
+
+  successionLayersNames <- names(successionLayers)
+  staticLayersNames <- names(staticLayers)
   message(crayon::yellow(paste0("Predicting for ", bird , ". Prediction for time ", currentTime)))
   suppressWarnings(dir.create(file.path(pathData, "predicted")))
   
-  browser()
   models <- modelList[[bird]]
   if ("glmerMod" %in% class(models)){
     nameStackRas1 <- names(models@frame)[2]
@@ -24,16 +25,18 @@ corePrediction <- function(bird, successionLayers = successionLayers,
       nameStackRas2 <- names(models$coefficients)[3]
     } else {
       if ("gbm" %in% class(models)){ # If gbm, do everything in here, else, do outside
-        if (raster::extent(successionLayers)!=extent(staticLayers)||
-            as.character(raster::crs(successionLayers))!=base::as.character(raster::crs(staticLayers))){
-          message("crs and or extents don't align. Trying postProcessing succession layers")
-          successionLayers <- lapply(X = seq_len(nlayers(successionLayers)), FUN = function(layer){
-            lay <- postProcess(subStaticLayers[[layer]], studyArea = studyArea, rasterToMatch = rasterToMatch)
-            return(lay)
+          tryCatch({
+            stkLays <- raster::stack(successionLayers, staticLayers)
+          }, error = function(e){
+            message("crs and or extents don't align. Trying postProcessing succession layers")
+            successionLayers <- lapply(X = seq_len(nlayers(successionLayers)), FUN = function(layer){
+              lay <- postProcess(successionLayers[[layer]], studyArea = studyArea, rasterToMatch = staticLayers[[1]],
+                                 destinationPath = tempdir(), filename2 = NULL)
+              return(lay)
           })
-          staticLayers <- raster::stack(successionLayers)
-        }
-        stkLays <- raster::stack(successionLayers, staticLayers)
+            stkLays <- raster::stack(successionLayers, staticLayers)
+            names(stkLays) <- c(successionLayersNames, staticLayersNames)
+          })
         predictedName <- file.path(pathData, paste0("predicted/predicted", bird, "Year", currentTime, ".tif"))
         if (isTRUE(overwritePredictions)||!file.exists(predictedName)){
           predicted <- gbm::predict.gbm(object = models, newdata = raster::as.data.frame(stkLays, row.names = TRUE),
