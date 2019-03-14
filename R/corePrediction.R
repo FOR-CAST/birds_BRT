@@ -1,4 +1,4 @@
-corePrediction <- function(x, successionLayers = successionLayers,
+corePrediction <- function(bird, successionLayers = successionLayers,
                            uplandsRaster = uplandsRaster,
                            staticLayers = staticLayers,
                            currentTime = currentTime,
@@ -7,13 +7,14 @@ corePrediction <- function(x, successionLayers = successionLayers,
                            pathData = pathData,
                            studyArea = studyArea,
                            rasterToMatch = rasterToMatch){
+
+  message("Cluster open... starting to run") # MAYBE IT IS THE LIBRARY? NOPE. It didn't print this message
   
-  reproducible::Require("magrittr")
-  
-  message(crayon::yellow(paste0("Predicting for ", x , ". Prediction for time ", currentTime)))
+  message(crayon::yellow(paste0("Predicting for ", bird , ". Prediction for time ", currentTime)))
   suppressWarnings(dir.create(file.path(pathData, "predicted")))
   
-  models <- modelList[[x]]
+  browser()
+  models <- modelList[[bird]]
   if ("glmerMod" %in% class(models)){
     nameStackRas1 <- names(models@frame)[2]
     nameStackRas2 <- names(models@frame)[3]
@@ -33,17 +34,17 @@ corePrediction <- function(x, successionLayers = successionLayers,
           staticLayers <- raster::stack(successionLayers)
         }
         stkLays <- raster::stack(successionLayers, staticLayers)
-        predictedName <- file.path(pathData, paste0("predicted/predicted", x, "Year", currentTime, ".tif"))
+        predictedName <- file.path(pathData, paste0("predicted/predicted", bird, "Year", currentTime, ".tif"))
         if (isTRUE(overwritePredictions)||!file.exists(predictedName)){
           predicted <- gbm::predict.gbm(object = models, newdata = raster::as.data.frame(stkLays, row.names = TRUE),
                                         type = "response",
                                         n.trees = models$n.trees)
-          message(crayon::green("Masking ", x , " prediction to studyArea for time ", currentTime))
-          basePlot <- stkLays[[1]] %>% 
-            setValues(predicted) %>%
-            reproducible::fastMask(y = studyArea)
+          message(crayon::green("Masking ", bird , " prediction to studyArea for time ", currentTime))
+          basePlot <- stkLays[[1]]
+          basePlot <- setValues(basePlot, predicted)
+          basePlot <- reproducible::fastMask(basePlot, y = studyArea)
           
-          names(basePlot) <- paste0("predicted", x)
+          names(basePlot) <- paste0("predicted", bird)
           predictedMasked <- reproducible::postProcess(x = basePlot, rasterToMatch = uplandsRaster, 
                                                        maskWithRTM = TRUE, destinationPath = pathData, filename2 = NULL)
           raster::writeRaster(x = predictedMasked, filename = predictedName,
@@ -57,9 +58,9 @@ corePrediction <- function(x, successionLayers = successionLayers,
     }
   }
   focDis <- as.numeric(gsub("[^\\d]+", "", nameStackRas1, perl=TRUE))
-  predictedName <- file.path(pathData, paste0("predicted/predictedFocal", focDis, "m", x, currentTime, ".tif"))
+  predictedName <- file.path(pathData, paste0("predicted/predictedFocal", focDis, "m", bird, currentTime, ".tif"))
   if (isTRUE(overwritePredictions)||!file.exists(predictedName)){
-    birdD <- raster::raster(birdDensityRasters[[x]])
+    birdD <- raster::raster(birdDensityRasters[[bird]])
     valsD <- log(raster::getValues(birdD)) # log the value of densities so it is the same of the original model
     valsD[valsD < -0.99] <- -1
     birdD <- raster::setValues(birdD, valsD)
@@ -78,7 +79,7 @@ corePrediction <- function(x, successionLayers = successionLayers,
     names(stackRas)[2] <- nameStackRas2
     suppressWarnings(predicted <- fitModel(inRas = stackRas, 
                                            inputModel = models, 
-                                           x = x, 
+                                           x = bird, 
                                            tileYear = currentTime))
     raster::writeRaster(x = predicted, filename = predictedName, 
                         format = "GTiff", overwrite = TRUE)

@@ -10,7 +10,7 @@ reproducible::Require("plyr")
 reproducible::Require("raster")
   
   message("Biomass data was simulated, using it for prediction")
-  
+
   # Create layer names based on the model
   predictors <- modelList[[1]]$gbm.call$predictor.names
   speciesNames <- unique(na.omit(sppEquiv[,NWT]))
@@ -34,7 +34,7 @@ reproducible::Require("raster")
       valsCoho <- data.table(pixelID = 1:ncell(pixelGroupMap), 
                              pixelGroup = getValues(x = pixelGroupMap))
       setkey(valsCoho$pixelGroup)
-      newCohoVals <- plyr::join(x = valsCoho, subsCohort[, list(sumBiomass=sum(B)), by = c("speciesCode", "pixelGroup")])
+      newCohoVals <- plyr::join(x = valsCoho, subsCohort[, list(sumBiomass = sum(B)), by = c("speciesCode", "pixelGroup")])
       spMap <- setValues(x = pixelGroupMap, values = newCohoVals$sumBiomass)
       assign(x = sp, value = spMap)
       names(spMap) <- speciesLayerNames[speciesName == sp, modelLayer]
