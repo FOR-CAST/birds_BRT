@@ -14,6 +14,7 @@ loadStaticLayers <- function(fileURL = extractURL("urlStaticLayers"),
   spLayers <- c("Species", "Structure")
   fixedLayers <- stkNames[!grepl(pattern = paste(spLayers, collapse = "|"), 
                                  x = stkNames)]
+  
   subStaticLayers <- raster::subset(x = stk, subset = fixedLayers)
   staticLayers <- lapply(X = seq_len(nlayers(subStaticLayers)), FUN = function(layer){
     lay <- postProcess(subStaticLayers[[layer]], studyArea = studyArea, 
@@ -21,6 +22,14 @@ loadStaticLayers <- function(fileURL = extractURL("urlStaticLayers"),
                        filename2 = NULL)
     return(lay)
   })
+  # names(staticLayers) <- fixedLayers # Might not be necessary
+  # staticLayers <- lapply(X = seq_len(length(staticLayers)), FUN = function(layNumber){
+  #   names(staticLayers[[layNumber]]) <- fixedLayers[layNumber]
+  #   return(staticLayers[[layNumber]])
+  # }) # Might not be necessary
   staticLayers <- raster::stack(staticLayers)
+  names(staticLayers) <- fixedLayers # Maybe just passing the names to the stack would do the trick
   return(staticLayers)
 }
+
+rasterOptions(todisk = FALSE)

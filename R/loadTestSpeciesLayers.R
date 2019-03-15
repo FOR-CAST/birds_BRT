@@ -17,6 +17,7 @@ loadTestSpeciesLayers <- function(successionTables = sim$successionTables,
     return(lay)
   })
   staticLayers <- raster::stack(staticLayers)
+  names(staticLayers) <- names(specieLayers) # Added this one for computers that can't process in memory and have to write a temporary file
 
     return(staticLayers)
 }

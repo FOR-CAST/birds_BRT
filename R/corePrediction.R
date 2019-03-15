@@ -8,7 +8,7 @@ corePrediction <- function(bird, successionLayers = successionLayers,
                            studyArea = studyArea,
                            rasterToMatch = rasterToMatch){
 
-  message("Cluster open... starting to run") # MAYBE IT IS THE LIBRARY? NOPE. It didn't print this message
+  message("Cluster open... starting to run")
 
   successionLayersNames <- names(successionLayers)
   staticLayersNames <- names(staticLayers)

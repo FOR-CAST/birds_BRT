@@ -90,6 +90,64 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       message("The following static layers have been loaded: \n", 
               paste(names(sim$staticLayers), collapse = "\n"))
     },
+    gettingData = {
+      Require("magrittr")
+      if (!suppliedElsewhere(object = "cohortData", sim = sim)){
+        message(crayon::yellow(paste0("cohortData not supplied by another module.", 
+                                      " Will try using files in inputPath(sim) or create dummy data")))
+        mod$cohortDataName <- grepMulti(x = list.files(inputPath(sim), 
+                                                       recursive = TRUE), 
+                                        patterns = c("cohortData", time(sim)))
+        if (length(mod$cohortDataName) == 0){
+          mod$cohortData <- NULL
+        } else {
+          mod$cohortData <- readRDS(file.path(inputPath(sim), mod$cohortDataName))
+        }
+        if (!is.null(mod$cohortData)) message(paste0("cohortData loaded from " , 
+                                                     crayon::magenta(file.path(inputPath(sim), mod$cohortDataName)),
+                                                     " for year ", time(sim)))
+      }
+      
+      if (!suppliedElsewhere(object = "pixelGroupMap", sim = sim)){
+        message(crayon::yellow(paste0("pixelGroupMap not supplied by another module." , 
+                                      " Will try using files in inputPath(sim) or create dummy data")))
+        mod$pixelGroupMapName <- grepMulti(x = list.files(inputPath(sim), 
+                                                          recursive = TRUE), 
+                                           patterns = c("pixelGroupMap", time(sim)))
+        if (length(mod$pixelGroupMapName) == 0) {
+          mod$pixelGroupMap <- NULL
+        } else {
+          mod$pixelGroupMap <- readRDS(file.path(inputPath(sim), mod$pixelGroupMapName))
+        }
+        if (!is.null(mod$pixelGroupMap)) message(paste0("pixelGroupMap loaded from ", 
+                                                        crayon::magenta(file.path(inputPath(sim), mod$cohortDataName)), 
+                                                        " for year ", time(sim)))
+      }
+      
+      if (!suppliedElsewhere(object = "simulatedBiomassMap", sim = sim)){
+        message(crayon::yellow(paste0("simulatedBiomassMap not supplied by another module." , 
+                                      " Will try using files in inputPath(sim) or create dummy data")))
+        mod$simulatedBiomassMapName <- grepMulti(x = list.files(inputPath(sim), 
+                                                          recursive = TRUE), 
+                                           patterns = c("simulatedBiomassMap", time(sim)))
+        if (length(mod$simulatedBiomassMapName) == 0) {
+          mod$simulatedBiomassMap <- NULL
+        } else {
+          mod$simulatedBiomassMap <- readRDS(file.path(inputPath(sim), mod$simulatedBiomassMapName))
+        }
+        if (!is.null(mod$simulatedBiomassMap)) message(paste0("simulatedBiomassMap loaded from ", 
+                                                        crayon::magenta(file.path(inputPath(sim), mod$cohortDataName)), 
+                                                        " for year ", time(sim)))
+      }
+      
+      if (any(is.null(mod$pixelGroupMap), is.null(mod$cohortData), is.null(mod$simulatedBiomassMap))) {
+        params(sim)$useTestSpeciesLayers <- TRUE
+      }
+      
+      # schedule future event(s)
+      sim <- scheduleEvent(sim, time(sim) + 1, "caribouPopGrowthModel", "gettingData")
+      
+    },
     predictBirds = {
       if (P(sim)$useTestSpeciesLayers == TRUE){
         message("Using test layers for species. Predictions will be static and identical to original data.")
@@ -104,31 +162,21 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                 !suppliedElsewhere("pixelGroupMap", sim)))
           stop("useTestSpeciesLayers is FALSE, but apparently no vegetation simulation was run")
         
+        simulatedBiomassMap <- if (!is.null(sim$simulatedBiomassMap)) sim$simulatedBiomassMap else mod$simulatedBiomassMap
+        cohortData <- if (!is.null(sim$cohortData)) sim$cohortData else mod$cohortData
+        pixelGroupMap <- if (!is.null(sim$pixelGroupMap)) sim$pixelGroupMap else mod$pixelGroupMap
+        
         sim$successionLayers <- Cache(createSpeciesStackLayer,
                                       modelList = sim$birdModels,
-                                      simulatedBiomassMap = sim$simulatedBiomassMap,
-                                      cohortData = sim$cohortData,
+                                      simulatedBiomassMap = simulatedBiomassMap,
+                                      cohortData = cohortData,
                                       staticLayers = sim$staticLayers,
                                       sppEquiv = sim$sppEquiv,
-                                      pixelGroupMap = sim$pixelGroupMap,
+                                      pixelGroupMap = pixelGroupMap,
                                       pathData = dataPath(sim),
                                       userTags = paste0("successionLayers", time(sim)),
                                       omitArgs = "pathData")
       }
-      
-      sim$wetlandRaster <- Cache(prepInputsLayers_DUCKS, destinationPath = dataPath(sim), 
-                                 studyArea = sim$studyArea, 
-                                 userTags = "objectName:wetlandRaster")
-      
-      sim$uplandsRaster <- Cache(classifyWetlands, LCC = P(sim)$baseLayer,
-                          wetLayerInput = sim$wetlandRaster,
-                          pathData = dataPath(sim),
-                          studyArea = sim$studyArea,
-                          userTags = c("objectName:wetLCC"))
-      uplandVals <- raster::getValues(sim$uplandsRaster) # Uplands = 3, so we should convert 1 an 2 to NA
-      uplandVals[uplandVals < 3] <- NA
-      uplandVals[uplandVals == 3] <- 1
-      sim$uplandsRaster <- raster::setValues(sim$uplandsRaster, uplandVals)
       
       sim$birdPrediction[[paste0("Year", time(sim))]] <- Cache(predictDensities, birdSpecies = sim$birdsList,
                                                                uplandsRaster = sim$uplandsRaster,
@@ -190,5 +238,28 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                               filename2 = NULL,
                               omitArgs = c("destinationPath", "filename2"))
   }
+  
+  if (!suppliedElsewhere("uplandsRaster", sim = sim, where = "sim")){
+    
+    wetlandRaster <- Cache(prepInputsLayers_DUCKS, destinationPath = dataPath(sim), 
+                               studyArea = sim$studyArea, 
+                               userTags = "objectName:wetlandRaster")
+    
+    sim$uplandsRaster <- Cache(classifyWetlands, LCC = P(sim)$baseLayer,
+                               wetLayerInput = wetlandRaster,
+                               pathData = dataPath(sim),
+                               studyArea = sim$studyArea,
+                               userTags = c("objectName:wetLCC"))
+    uplandVals <- raster::getValues(sim$uplandsRaster) # Uplands = 3, so we should convert 1 an 2 to NA
+    uplandVals[uplandVals < 3] <- NA
+    uplandVals[uplandVals == 3] <- 1
+    sim$uplandsRaster <- raster::setValues(sim$uplandsRaster, uplandVals)
+  }
+  
+  if (extent(sim$uplandsRaster) != extent(sim$studyArea)){
+    sim$uplandsRaster <- postProcess(x = sim$uplandsRaster, studyArea = sim$studyArea,
+                                     destinationFolder = dataPath(sim))
+  }
+  
   return(invisible(sim))
 }
