@@ -46,6 +46,7 @@ devtools::install_github("PredictiveEcology/LandR@development")  # Updates SpaDE
 
 # Load SpaDES
 library("SpaDES")
+library("raster")
 
 dayOfRecording <- today <- toupper(format(Sys.time(), "%d%b%y"))
 
@@ -87,8 +88,9 @@ parameters <- list(
 birdsNWT = list(
     "baseLayer" = 2005,
     "overwritePredictions" = TRUE,
-    "useTestSpeciesLayers" = TRUE,
-    "useParallel" = FALSE # Using parallel in windows is currently not working.
+    "useTestSpeciesLayers" = TRUE, # Set it to false when you actually have results from LandR_Biomass simulations to run it with
+    "useParallel" = FALSE, # Using parallel in windows is currently not working.
+    "predictionInterval" = 1
   )
 )
 
