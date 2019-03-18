@@ -71,6 +71,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       # schedule future event(s)
       sim <- scheduleEvent(sim, start(sim), "birdsNWT", "loadModels")
       sim <- scheduleEvent(sim, start(sim), "birdsNWT", "loadFixedLayers")
+      sim <- scheduleEvent(sim, start(sim), "birdsNWT", "gettingData")
       sim <- scheduleEvent(sim, start(sim), "birdsNWT", "predictBirds", eventPriority = .last())
       
     },
@@ -145,7 +146,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       }
       
       # schedule future event(s)
-      sim <- scheduleEvent(sim, time(sim) + 1, "caribouPopGrowthModel", "gettingData")
+      sim <- scheduleEvent(sim, time(sim) + P(sim)$predictionInterval, "birdsNWT", "gettingData")
       
     },
     predictBirds = {
@@ -160,6 +161,9 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
         if (any(!suppliedElsewhere("simulatedBiomassMap", sim), 
                 !suppliedElsewhere("cohortData", sim),
                 !suppliedElsewhere("pixelGroupMap", sim)))
+          if (any(is.null(mod$simulatedBiomassMap), 
+                  is.null(mod$pixelGroupMap),
+                  is.null(mod$cohortData)))
           stop("useTestSpeciesLayers is FALSE, but apparently no vegetation simulation was run")
         
         simulatedBiomassMap <- if (!is.null(sim$simulatedBiomassMap)) sim$simulatedBiomassMap else mod$simulatedBiomassMap
