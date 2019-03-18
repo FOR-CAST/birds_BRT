@@ -262,7 +262,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
   
   if (extent(sim$uplandsRaster) != extent(sim$studyArea)){
     sim$uplandsRaster <- postProcess(x = sim$uplandsRaster, studyArea = sim$studyArea,
-                                     destinationFolder = dataPath(sim))
+                                     destinationFolder = dataPath(sim), filename2 = NULL)
   }
   
   return(invisible(sim))

@@ -97,13 +97,13 @@ birdsNWT = list(
 # Passing the uplandsRaster here makes sure that all computers can use it as the operations take up a lot of memory
 uplandsRaster <- prepInputs(targetFile = "uplandsNWT250m.tif", 
                             url = "https://drive.google.com/open?id=1EF67NCH7HqN6QZ0KGlpntB_Zcquu6NJe", 
-                            destinationPath = getPaths()$inputPath)
+                            destinationPath = getPaths()$inputPath, filename2 = NULL)
 
 # Check the list of species available:
 showAvailableBirdSpecies()
 
 .objects <- list(
-  "birdsList" = c("BBWA", "BOCH"),
+  "birdsList" = c("BBWA", "BOCH", "RBNU"),
   "uplandsRaster" = uplandsRaster)
 modules <- list("birdsNWT")
 inputs <- list()
