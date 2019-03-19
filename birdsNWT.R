@@ -95,7 +95,10 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       Require("magrittr")
       if (!suppliedElsewhere(object = "cohortData", sim = sim)){
         message(crayon::yellow(paste0("cohortData not supplied by another module.", 
-                                      " Will try using files in inputPath(sim) or create dummy data")))
+                                      " Will try using files in inputPath(sim)")))
+        if (length(list.files(inputPath(sim), 
+                              recursive = TRUE)) == 0)
+          stop(paste0("Please place the data in the input folder ", inputPath(sim)))
         mod$cohortDataName <- grepMulti(x = list.files(inputPath(sim), 
                                                        recursive = TRUE), 
                                         patterns = c("cohortData", time(sim)))
@@ -111,7 +114,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       
       if (!suppliedElsewhere(object = "pixelGroupMap", sim = sim)){
         message(crayon::yellow(paste0("pixelGroupMap not supplied by another module." , 
-                                      " Will try using files in inputPath(sim) or create dummy data")))
+                                      " Will try using files in inputPath(sim)")))
         mod$pixelGroupMapName <- grepMulti(x = list.files(inputPath(sim), 
                                                           recursive = TRUE), 
                                            patterns = c("pixelGroupMap", time(sim)))
@@ -127,7 +130,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       
       if (!suppliedElsewhere(object = "simulatedBiomassMap", sim = sim)){
         message(crayon::yellow(paste0("simulatedBiomassMap not supplied by another module." , 
-                                      " Will try using files in inputPath(sim) or create dummy data")))
+                                      " Will try using files in inputPath(sim)")))
         mod$simulatedBiomassMapName <- grepMulti(x = list.files(inputPath(sim), 
                                                           recursive = TRUE), 
                                            patterns = c("simulatedBiomassMap", time(sim)))
