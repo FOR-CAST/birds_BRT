@@ -1,15 +1,13 @@
-corePrediction <- function(bird, successionLayers = successionLayers,
-                           uplandsRaster = uplandsRaster,
-                           staticLayers = staticLayers,
-                           currentTime = currentTime,
-                           modelList = modelList,
-                           overwritePredictions = overwritePredictions,
+corePrediction <- function(bird, successionLayers,
+                           uplandsRaster,
+                           staticLayers,
+                           currentTime,
+                           modelList,
+                           overwritePredictions,
                            pathData = pathData,
                            studyArea = studyArea,
                            rasterToMatch = rasterToMatch){
-
-  message("Cluster open... starting to run")
-
+  
   successionLayersNames <- names(successionLayers)
   staticLayersNames <- names(staticLayers)
   message(crayon::yellow(paste0("Predicting for ", bird , ". Prediction for time ", currentTime)))
@@ -39,15 +37,21 @@ corePrediction <- function(bird, successionLayers = successionLayers,
           })
         predictedName <- file.path(pathData, paste0("predicted/predicted", bird, "Year", currentTime, ".tif"))
         if (isTRUE(overwritePredictions)||!file.exists(predictedName)){
+          message(crayon::yellow(paste0(" Starting prediction raster for ", bird, ". This might take some time... [", Sys.time(),"]")))
+          startTime <- Sys.time()
           predicted <- gbm::predict.gbm(object = models, newdata = raster::as.data.frame(stkLays, row.names = TRUE),
                                         type = "response",
                                         n.trees = models$n.trees)
-          message(crayon::green("Masking ", bird , " prediction to studyArea for time ", currentTime))
+          message(crayon::green(paste0("Prediction finalized for ", bird, ". [", Sys.time(),"]. Total time elapsed: ", 
+                                       Sys.time() - startTime)))
+          startTime <- Sys.time()
+          message(crayon::green("Masking ", bird , " prediction to ", crayon::red("studyArea"), " for time ", currentTime))
           basePlot <- stkLays[[1]]
           basePlot <- setValues(basePlot, predicted)
           basePlot <- reproducible::fastMask(basePlot, y = studyArea)
           
           names(basePlot) <- paste0("predicted", bird)
+          message(crayon::green("Masking ", bird , " prediction to ", crayon::red("uplands"), " for time ", currentTime))
           predictedMasked <- reproducible::postProcess(x = basePlot, rasterToMatch = uplandsRaster, 
                                                        maskWithRTM = TRUE, destinationPath = pathData, filename2 = NULL)
           raster::writeRaster(x = predictedMasked, filename = predictedName,

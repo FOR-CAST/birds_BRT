@@ -19,7 +19,7 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching?"),
     defineParameter("useParallel", "logical", FALSE, NA, NA, "Should bird prediction be parallelized?"),
     defineParameter("useTestSpeciesLayers", "logical", TRUE, NA, NA, "Use testing layers if forest succesion is not available?"),
-    defineParameter("predictionInterval", "numeric", 10, NA, NA, "Use testing layers if forest succesion is not available?"),
+    defineParameter("predictionInterval", "numeric", 10, NA, NA, "Time between predictions"),
     defineParameter("nCores", "character|numeric", "auto", NA, NA, paste0("If parallelizing, how many cores to use?",
                                                                           " Use 'auto' (90% of available), or numeric")),
     defineParameter(name = "baseLayer", class = "character", default = 2005, min = NA, max = NA, 
@@ -79,6 +79,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       sim$birdModels <- Cache(loadBirdModels, birdsList = sim$birdsList,
                               folderUrl = extractURL("urlModels"),
                               pathData = dataPath(sim),
+                              cloudFolderID = sim$cloudFolderID,
                               omitArgs = "pathData")
       message("Bird models loaded for: \n", paste(sim$birdsList, collapse = "\n"))
     },
@@ -92,62 +93,20 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
               paste(names(sim$staticLayers), collapse = "\n"))
     },
     gettingData = {
+      
       Require("magrittr")
-      if (!suppliedElsewhere(object = "cohortData", sim = sim)){
-        message(crayon::yellow(paste0("cohortData not supplied by another module.", 
-                                      " Will try using files in inputPath(sim)")))
-        if (length(list.files(inputPath(sim), 
-                              recursive = TRUE)) == 0)
-          stop(paste0("Please place the data in the input folder ", inputPath(sim)))
-        mod$cohortDataName <- grepMulti(x = list.files(inputPath(sim), 
-                                                       recursive = TRUE), 
-                                        patterns = c("cohortData", time(sim)))
-        if (length(mod$cohortDataName) == 0){
-          mod$cohortData <- NULL
-        } else {
-          mod$cohortData <- readRDS(file.path(inputPath(sim), mod$cohortDataName))
-        }
-        if (!is.null(mod$cohortData)) message(paste0("cohortData loaded from " , 
-                                                     crayon::magenta(file.path(inputPath(sim), mod$cohortDataName)),
-                                                     " for year ", time(sim)))
-      }
-      
-      if (!suppliedElsewhere(object = "pixelGroupMap", sim = sim)){
-        message(crayon::yellow(paste0("pixelGroupMap not supplied by another module." , 
-                                      " Will try using files in inputPath(sim)")))
-        mod$pixelGroupMapName <- grepMulti(x = list.files(inputPath(sim), 
-                                                          recursive = TRUE), 
-                                           patterns = c("pixelGroupMap", time(sim)))
-        if (length(mod$pixelGroupMapName) == 0) {
-          mod$pixelGroupMap <- NULL
-        } else {
-          mod$pixelGroupMap <- readRDS(file.path(inputPath(sim), mod$pixelGroupMapName))
-        }
-        if (!is.null(mod$pixelGroupMap)) message(paste0("pixelGroupMap loaded from ", 
-                                                        crayon::magenta(file.path(inputPath(sim), mod$cohortDataName)), 
-                                                        " for year ", time(sim)))
-      }
-      
-      if (!suppliedElsewhere(object = "simulatedBiomassMap", sim = sim)){
-        message(crayon::yellow(paste0("simulatedBiomassMap not supplied by another module." , 
-                                      " Will try using files in inputPath(sim)")))
-        mod$simulatedBiomassMapName <- grepMulti(x = list.files(inputPath(sim), 
-                                                          recursive = TRUE), 
-                                           patterns = c("simulatedBiomassMap", time(sim)))
-        if (length(mod$simulatedBiomassMapName) == 0) {
-          mod$simulatedBiomassMap <- NULL
-        } else {
-          mod$simulatedBiomassMap <- readRDS(file.path(inputPath(sim), mod$simulatedBiomassMapName))
-        }
-        if (!is.null(mod$simulatedBiomassMap)) message(paste0("simulatedBiomassMap loaded from ", 
-                                                        crayon::magenta(file.path(inputPath(sim), mod$cohortDataName)), 
-                                                        " for year ", time(sim)))
-      }
+
+      mod$cohortData <- createModObject(data = "cohortData", sim = sim, 
+                                        pathInput = inputPath(sim), time = time(sim))
+      mod$pixelGroupMap <- createModObject(data = "pixelGroupMap", sim = sim, 
+                                        pathInput = inputPath(sim), time = time(sim))
+      mod$simulatedBiomassMap <- createModObject(data = "simulatedBiomassMap", sim = sim, 
+                                        pathInput = inputPath(sim), time = time(sim))
       
       if (any(is.null(mod$pixelGroupMap), is.null(mod$cohortData), is.null(mod$simulatedBiomassMap))) {
         params(sim)$useTestSpeciesLayers <- TRUE
       }
-      
+
       # schedule future event(s)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$predictionInterval, "birdsNWT", "gettingData")
       
@@ -157,7 +116,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
         message("Using test layers for species. Predictions will be static and identical to original data.")
         sim$successionLayers <- Cache(loadTestSpeciesLayers, 
                                       modelList = sim$birdModels,
-                                      pathData = dataPath(sim),
+                                      pathData = outputPath(sim),
                                       studyArea = sim$studyArea,
                                       rasterToMatch = sim$rasterToMatch)
       } else {
@@ -169,9 +128,9 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                   is.null(mod$cohortData)))
           stop("useTestSpeciesLayers is FALSE, but apparently no vegetation simulation was run")
         
-        simulatedBiomassMap <- if (!is.null(sim$simulatedBiomassMap)) sim$simulatedBiomassMap else mod$simulatedBiomassMap
-        cohortData <- if (!is.null(sim$cohortData)) sim$cohortData else mod$cohortData
-        pixelGroupMap <- if (!is.null(sim$pixelGroupMap)) sim$pixelGroupMap else mod$pixelGroupMap
+        # simulatedBiomassMap <- if (!is.null(sim$simulatedBiomassMap)) sim$simulatedBiomassMap else mod$simulatedBiomassMap
+        # cohortData <- if (!is.null(sim$cohortData)) sim$cohortData else mod$cohortData
+        # pixelGroupMap <- if (!is.null(sim$pixelGroupMap)) sim$pixelGroupMap else mod$pixelGroupMap
         
         sim$successionLayers <- Cache(createSpeciesStackLayer,
                                       modelList = sim$birdModels,
@@ -179,6 +138,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                       cohortData = cohortData,
                                       staticLayers = sim$staticLayers,
                                       sppEquiv = sim$sppEquiv,
+                                      sppEquivCol = sim$sppEquivCol,
                                       pixelGroupMap = pixelGroupMap,
                                       pathData = dataPath(sim),
                                       userTags = paste0("successionLayers", time(sim)),
