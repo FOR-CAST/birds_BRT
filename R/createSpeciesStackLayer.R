@@ -1,11 +1,12 @@
-createSpeciesStackLayer <- function(modelList = sim$birdModels,
-                                    simulatedBiomassMap = sim$simulatedBiomassMap,
-                                    cohortData = sim$cohortData, # Should also have age
-                                    sppEquiv = sim$sppEquiv,
-                                    sppEquivCol = "NWT",
-                                    staticLayers = sim$staticLayers,
-                                    pixelGroupMap = sim$pixelGroupMap,
-                                    pathData = dataPath(sim)){
+createSpeciesStackLayer <- function(modelList,
+                                    simulatedBiomassMap,
+                                    cohortData, # Should also have age
+                                    sppEquiv,
+                                    sppEquivCol,
+                                    staticLayers,
+                                    pixelGroupMap,
+                                    pathData,
+                                    forestOnly){
 reproducible::Require("data.table")
 reproducible::Require("plyr")
 reproducible::Require("raster")
@@ -23,6 +24,7 @@ reproducible::Require("raster")
   # Iterate through species and for each species, plot the B in the `pixelGroupMap`
   names(speciesNames) <- speciesLayerNames$modelLayer[
     match(speciesLayerNames$speciesName, speciesNames)]
+  
   speciesRasters <- lapply(X = speciesNames, FUN = function(sp){
     subsCohort <- cohortData[speciesCode == sp, ]
     zeroedMap <- raster(pixelGroupMap)
@@ -45,10 +47,11 @@ reproducible::Require("raster")
       zeroedMap[newCohoVals$pixelID] <- newCohoVals$sumBiomass
       assign(x = sp, value = zeroedMap)
       names(zeroedMap) <- speciesLayerNames[speciesName == sp, modelLayer]
-      return(zeroedMap)
+      spMapMaskedToForestOnly <- postProcess(x = zeroedMap, rasterToMatch = forestOnly,
+                                             destinationPath = tempdir(), filename2 = NULL)
+      return(spMapMaskedToForestOnly)
     }
   })
-  
       
   # Rename biomass
   biomassLayerName <- predictors[grepl(x = predictors, pattern = "Biomass")]

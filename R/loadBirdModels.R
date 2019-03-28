@@ -1,9 +1,10 @@
 loadBirdModels <- function(birdsList = sim$birdsList,
                            folderUrl = extractURL("urlModels"),
                            cloudFolderID = sim$cloudFolderID,
-                           pathData = dataPath(sim)){
+                           pathData = dataPath(sim),
+                           version){
   reproducible::Require("googledrive")
-  filesToDownload <- Cache(googledrive::drive_ls, path = as_id(folderUrl), pattern = "brt1.R")
+  filesToDownload <- Cache(googledrive::drive_ls, path = as_id(folderUrl), pattern = paste0("brt", version, ".R"))
   modelsPath <- checkPath(file.path(pathData, "models"), create = TRUE)
   modelsForBirdList <- filesToDownload$name[grepl(pattern = paste(birdsList, collapse = "|"), x = filesToDownload$name)]
   downloadedModels <- lapply(X = modelsForBirdList, FUN = function(modelFile){

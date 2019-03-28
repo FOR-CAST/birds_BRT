@@ -17,6 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("googledrive", "data.table", "raster", "gbm", "crayon", "plyr", "dplyr"),
   parameters = rbind(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching?"),
+    defineParameter("version", "character", "2", NA, NA, "Number of the bird module version to be used"),
     defineParameter("useParallel", "logical", FALSE, NA, NA, "Should bird prediction be parallelized?"),
     defineParameter("useTestSpeciesLayers", "logical", TRUE, NA, NA, "Use testing layers if forest succesion is not available?"),
     defineParameter("predictionInterval", "numeric", 10, NA, NA, "Time between predictions"),
@@ -38,7 +39,7 @@ defineModule(sim, list(
                  desc = "Folder ID for cloud caching", sourceURL = NA),
     expectsInput(objectName = "urlModels", objectClass = "character", 
                  desc = "Url for the GDrive folder that has all model objects",
-                 sourceURL = "https://drive.google.com/open?id=1obSvU4ml8xa8WMQhQprd6heRrN47buvI"),
+                 sourceURL = "https://drive.google.com/open?id=1cpt-AKDbnlUEi6r70Oow2lEPrbzQfVpt"),
     expectsInput(objectName = "urlStaticLayers", objectClass = "RasterLayer", 
                  desc = "Static Layers (WAT, URBAG, lLED25, DEV25 and landform) url", 
                  sourceURL = "https://drive.google.com/open?id=1OzWUtBvVwBPfYiI_L_2S1kj8V6CzB92D"),
@@ -47,7 +48,10 @@ defineModule(sim, list(
                  sourceURL = "https://drive.google.com/open?id=1P4grDYDffVyVXvMjM-RwzpuH1deZuvL3"),
     expectsInput(objectName = "rasterToMatch", objectClass = "RasterLayer",
                  desc = "All spatial outputs will be reprojected and resampled to it", 
-                 sourceURL = "https://drive.google.com/open?id=1P4grDYDffVyVXvMjM-RwzpuH1deZuvL3")
+                 sourceURL = "https://drive.google.com/open?id=1P4grDYDffVyVXvMjM-RwzpuH1deZuvL3"),
+    expectsInput(objectName = "forestOnly", objectClass = "RasterLayer",
+                 desc = "Raster to match but NA'ed for non-forest pixels", 
+                 sourceURL = NA)
   ),
   outputObjects = bind_rows(
     createsOutput(objectName = "birdPrediction", objectClass = "list", 
@@ -79,6 +83,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       sim$birdModels <- Cache(loadBirdModels, birdsList = sim$birdsList,
                               folderUrl = extractURL("urlModels"),
                               pathData = dataPath(sim),
+                              version = P(sim)$version,
                               cloudFolderID = sim$cloudFolderID,
                               omitArgs = "pathData")
       message("Bird models loaded for: \n", paste(sim$birdsList, collapse = "\n"))
@@ -151,6 +156,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                       sppEquivCol = sim$sppEquivCol,
                                       pixelGroupMap = mod$pixelGroupMap,
                                       pathData = dataPath(sim),
+                                      forestOnly = sim$forestOnly,
                                       userTags = paste0("successionLayers", time(sim)),
                                       omitArgs = "pathData")
       }
@@ -214,6 +220,21 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                               targetFile = "RTM.tif", destinationPath = inputPath(sim),
                               filename2 = NULL,
                               omitArgs = c("destinationPath", "filename2"))
+  }
+  
+  if (!suppliedElsewhere("LCC05", sim)){
+    sim$LCC05 <- LandR::prepInputsLCC(destinationPath = dataPath(sim),
+                                      studyArea = sim$studyArea,
+                                      rasterToMatch = sim$rasterToMatch)
+  }
+  
+  if (!suppliedElsewhere("forestOnly", sim = sim, where = "sim")){
+    
+    forestClasses <- c(1:15, 34:35)
+
+    sim$forestOnly <- sim$rasterToMatch
+    sim$forestOnly[!LCC05 %in% forestClasses] <- NA
+    
   }
   
   if (!suppliedElsewhere("uplandsRaster", sim = sim, where = "sim")){
