@@ -191,20 +191,16 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
   dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
   if (!suppliedElsewhere(object = "birdsList", sim = sim)){
-    
-    tryCatch({
       birdsAvailable <- googledrive::drive_ls(
         path = as_id("https://drive.google.com/open?id=1cpt-AKDbnlUEi6r70Oow2lEPrbzQfVpt"), 
         pattern = paste0("brt2.R"))
       sim$birdsList <- unlist(strsplit(x = birdsAvailable[["name"]], split = paste0("brt", P(sim)$version, ".R")))
-    }, error = function(e){
-      sim$birdsList <- c("REVI", "HETH", "RCKI", "HAFL", "WIWR", "GRCA", "RBNU", "WIWA", 
+      if (is.null(sim$birdsList))
+        sim$birdsList <- c("REVI", "HETH", "RCKI", "HAFL", "WIWR", "GRCA", "RBNU", "WIWA", 
                          "GRAJ", "RBGR", "WEWP", "GCKI", "PUFI", "WETA", "FOSP", "PISI", 
                          "WCSP", "EVGR", "WBNU", "PIGR", "BTNW", "EAPH", "PHVI", "WAVI", 
                          "BRTH", "EAKI", "BRCR", "PAWA", "VESP", "DEJU", "BRBL", "OVEN", 
-                         "VEER", "CSWA", "BOCH", "VATH", "OSFL", "BLPW", "COYE", "TRES") 
-    }
-    )
+                         "VEER", "CSWA", "BOCH", "VATH", "OSFL", "BLPW", "COYE", "TRES")
   }
   if (!suppliedElsewhere("studyArea", sim = sim, where = "sim")){
     if (quickPlot::isRstudioServer()) options(httr_oob_default = TRUE)
@@ -234,9 +230,8 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
   if (!suppliedElsewhere("forestOnly", sim = sim, where = "sim")){
     
     forestClasses <- c(1:15, 34:35)
-
     sim$forestOnly <- sim$rasterToMatch
-    sim$forestOnly[!sim$LCC05 %in% forestClasses] <- NA
+    sim$forestOnly[!sim$LCC05[] %in% forestClasses] <- NA
     
   }
   

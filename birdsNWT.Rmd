@@ -59,6 +59,7 @@ if (isTEST){
 
 # Source functions in R folder
 invisible(sapply(X = list.files(file.path(getwd(), "R"), full.names = TRUE), FUN = source))
+invisible(sapply(X = list.files(dirname(getwd()), "functions", full.names = TRUE), FUN = source))
 
 # Set a storage project folder
 workDirectory <- getwd()
