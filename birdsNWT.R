@@ -197,7 +197,6 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       sim$birdsList <- unlist(strsplit(x = birdsAvailable[["name"]], split = paste0("brt", P(sim)$version, ".R")))
       sim$birdsList <- sim$birdsList[-which(grepl(pattern = "CONW", x = sim$birdsList))] # CONW Model has some sort of problem...
       
-      a[-which(grepl(pattern = "ccc", x = a))]
       if (is.null(sim$birdsList))
         sim$birdsList <- c("REVI", "HETH", "RCKI", "HAFL", "WIWR", "GRCA", "RBNU", "WIWA", 
                          "GRAJ", "RBGR", "WEWP", "GCKI", "PUFI", "WETA", "FOSP", "PISI", 
