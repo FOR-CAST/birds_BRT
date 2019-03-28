@@ -95,13 +95,27 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
     gettingData = {
       
       Require("magrittr")
-
-      mod$cohortData <- createModObject(data = "cohortData", sim = sim, 
-                                        pathInput = inputPath(sim), time = time(sim))
-      mod$pixelGroupMap <- createModObject(data = "pixelGroupMap", sim = sim, 
-                                        pathInput = inputPath(sim), time = time(sim))
-      mod$simulatedBiomassMap <- createModObject(data = "simulatedBiomassMap", sim = sim, 
-                                        pathInput = inputPath(sim), time = time(sim))
+      
+      if (!is.null(sim$cohortData)){
+      mod$cohortData <- sim$cohortData
+      } else {
+      mod$cohortData <- createModObject(data = "cohortData", sim = sim,
+      pathInput = inputPath(sim), time = time(sim))
+      }
+      
+      if (!is.null(sim$pixelGroupMap)){
+        mod$pixelGroupMap <- sim$pixelGroupMap
+      } else {
+        mod$pixelGroupMap <- createModObject(data = "pixelGroupMap", sim = sim, 
+                                             pathInput = inputPath(sim), time = time(sim))
+      }
+      
+      if (!is.null(sim$simulatedBiomassMap)){
+        mod$simulatedBiomassMap <- sim$simulatedBiomassMap
+      } else {
+        mod$simulatedBiomassMap <- createModObject(data = "simulatedBiomassMap", sim = sim, 
+                                                   pathInput = inputPath(sim), time = time(sim))
+      }
       
       if (any(is.null(mod$pixelGroupMap), is.null(mod$cohortData), is.null(mod$simulatedBiomassMap))) {
         params(sim)$useTestSpeciesLayers <- TRUE
@@ -128,18 +142,14 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                   is.null(mod$cohortData)))
           stop("useTestSpeciesLayers is FALSE, but apparently no vegetation simulation was run")
         
-        # simulatedBiomassMap <- if (!is.null(sim$simulatedBiomassMap)) sim$simulatedBiomassMap else mod$simulatedBiomassMap
-        # cohortData <- if (!is.null(sim$cohortData)) sim$cohortData else mod$cohortData
-        # pixelGroupMap <- if (!is.null(sim$pixelGroupMap)) sim$pixelGroupMap else mod$pixelGroupMap
-        
         sim$successionLayers <- Cache(createSpeciesStackLayer,
                                       modelList = sim$birdModels,
-                                      simulatedBiomassMap = simulatedBiomassMap,
-                                      cohortData = cohortData,
+                                      simulatedBiomassMap = mod$simulatedBiomassMap,
+                                      cohortData = mod$cohortData,
                                       staticLayers = sim$staticLayers,
                                       sppEquiv = sim$sppEquiv,
                                       sppEquivCol = sim$sppEquivCol,
-                                      pixelGroupMap = pixelGroupMap,
+                                      pixelGroupMap = mod$pixelGroupMap,
                                       pathData = dataPath(sim),
                                       userTags = paste0("successionLayers", time(sim)),
                                       omitArgs = "pathData")
