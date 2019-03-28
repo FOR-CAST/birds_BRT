@@ -62,7 +62,6 @@ uplandsRaster <- prepInputs(targetFile = "uplandsNWT250m.tif",
 showAvailableBirdSpecies()
 
 .objects <- list(
-  "birdsList" = c("BBWA", "BOCH", "RBNU"),
   "uplandsRaster" = uplandsRaster)
 modules <- list("birdsNWT")
 inputs <- list()
