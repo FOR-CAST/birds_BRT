@@ -47,7 +47,7 @@ reproducible::Require("raster")
       zeroedMap[newCohoVals$pixelID] <- newCohoVals$sumBiomass
       assign(x = sp, value = zeroedMap)
       names(zeroedMap) <- speciesLayerNames[speciesName == sp, modelLayer]
-      spMapMaskedToForestOnly <- postProcess(x = zeroedMap, rasterToMatch = forestOnly,
+      spMapMaskedToForestOnly <- postProcess(x = zeroedMap, rasterToMatch = forestOnly, maskWithRTM = TRUE,
                                              destinationPath = tempdir(), filename2 = NULL)
       return(spMapMaskedToForestOnly)
     }
