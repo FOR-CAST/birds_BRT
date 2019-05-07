@@ -47,67 +47,113 @@ devtools::install_github("PredictiveEcology/LandR@development")  # Updates SpaDE
 # Load SpaDES
 library("SpaDES")
 library("raster")
-
-dayOfRecording <- today <- toupper(format(Sys.time(), "%d%b%y"))
-dayOfRecording <- "19MAR19"
-
-isTEST <- TRUE
-
-if (isTEST){
-    dayOfRecording <- "19MAR19"
-}
+# 
+# dayOfRecording <- today <- toupper(format(Sys.time(), "%d%b%y"))
+# dayOfRecording <- "19MAR19"
+# 
+# isTEST <- TRUE
+# 
+# if (isTEST){
+#     dayOfRecording <- "19MAR19"
+# }
 
 # Source functions in R folder
 invisible(sapply(X = list.files(file.path(getwd(), "R"), full.names = TRUE), FUN = source))
-invisible(sapply(X = list.files(dirname(getwd()), "functions", full.names = TRUE), FUN = source))
+# invisible(sapply(X = list.files(dirname(getwd()), "functions", full.names = TRUE), FUN = source))
+# 
+# # Set a storage project folder
+# workDirectory <- getwd()
+# message("Your current temporary directory is ", tempdir())
+# 
+# create <- if (isTEST) NULL else TRUE 
+# checkInputPath <- tryCatch(checkPath(file.path(dirname(dirname(getwd())), "outputs", dayOfRecording)), error = function(e) NULL)
+# if (is.null(checkInputPath)){
+#   inpPath <- tempdir()
+# } else {
+#   inpPath <- checkInputPath
+# }
+# 
+# checkOutputPath <- tryCatch(checkPath(file.path(dirname(dirname(getwd())), "outputs", today), create = create), error = function(e) NULL)
+# if (is.null(checkOutputPath)){
+#   outPath <- tempdir()
+# } else {
+#   outPath <- checkOutputPath
+# }
 
-# Set a storage project folder
-workDirectory <- getwd()
-message("Your current temporary directory is ", tempdir())
+# setPaths(modulePath = file.path(dirname(getwd())), 
+#          inputPath = inpPath, outputPath = outPath)
+# getPaths() # shows where the 4 relevant paths are
 
-create <- if (isTEST) NULL else TRUE 
-checkInputPath <- tryCatch(checkPath(file.path(dirname(dirname(getwd())), "outputs", dayOfRecording)), error = function(e) NULL)
-if (is.null(checkInputPath)){
-  inpPath <- tempdir()
-} else {
-  inpPath <- checkInputPath
-}
-
-checkOutputPath <- tryCatch(checkPath(file.path(dirname(dirname(getwd())), "outputs", today), create = create), error = function(e) NULL)
-if (is.null(checkOutputPath)){
-  outPath <- tempdir()
-} else {
-  outPath <- checkOutputPath
-}
-
-setPaths(modulePath = file.path(dirname(getwd())), 
-         inputPath = inpPath, outputPath = outPath)
+setPaths(modulePath = file.path(getwd(), "modules"), cachePath = file.path(getwd(), "cache"),
+         inputPath = file.path(getwd(), "outputs/19MAR19"), 
+         outputPath = file.path(getwd(), "outputs/29MAR19")) # Had to override... don't have time to redo the code up there
 getPaths() # shows where the 4 relevant paths are
 
-times <- list(start = 0, end = 3)
+times <- list(start = 0, end = 1)
 
 parameters <- list(
   .progress = list(type = "text", interval = 1), # for a progress bar
 birdsNWT = list(
     "baseLayer" = 2005,
-    "overwritePredictions" = TRUE,
-    "useTestSpeciesLayers" = TRUE, # Set it to false when you actually have results from LandR_Biomass simulations to run it with
+    "overwritePredictions" = FALSE,
+    "useTestSpeciesLayers" = FALSE, # Set it to false when you actually have results from LandR_Biomass simulations to run it with
     "useParallel" = FALSE, # Using parallel in windows is currently not working.
-    "predictionInterval" = 1
+    "predictionInterval" = 10,
+    "quickLoad" = TRUE
   )
 )
 
+  isEDHZHIE <- TRUE
+  if (isEDHZHIE){
+    Edehzhie.url <- "https://drive.google.com/open?id=1o2VamVILFx8SHqMCPC8bmjM8pkr5fsks"
+
+  studyArea <- Cache(prepInputs,
+                             url = Edehzhie.url,
+                             destinationPath = getPaths()$inputPath[[1]],
+                             userTags = "edeSA",
+                             omitArgs = c("destinationPath"))
+
+  rasterToMatch <- Cache(prepInputs, url = "https://drive.google.com/open?id=1fo08FMACr_aTV03lteQ7KsaoN9xGx1Df",
+                              studyArea = studyArea,
+                              targetFile = "RTM.tif", destinationPath = getPaths()$inputPath[[1]],
+                         filename2 = NULL,
+                              userTags = "edeRTM",
+                              omitArgs = c("destinationPath", "filename2"))
+  }
 # Passing the uplandsRaster here makes sure that all computers can use it as the operations take up a lot of memory
-uplandsRaster <- prepInputs(targetFile = "uplandsNWT250m.tif", 
+uplandsRaster <- prepInputs(targetFile = "uplandsNWT250m.tif", studyArea = studyArea, rasterToMatch = rasterToMatch,
                             url = "https://drive.google.com/open?id=1EF67NCH7HqN6QZ0KGlpntB_Zcquu6NJe", 
                             destinationPath = getPaths()$inputPath, filename2 = NULL)
 
 # Check the list of species available:
 showAvailableBirdSpecies()
 
+birdSpecies <- list.files(path = file.path(getwd(), "modules/birdsNWT/data/models"), pattern = "brt2.R")
+birdSpecies <- unlist(strsplit(birdSpecies, split = "brt2.R"))
+sppEquivCol <- "NWT"
+ data("sppEquivalencies_CA", package = "LandR")
+  sppEquivalencies_CA[, NWT := c(Abie_Bal = "Abie_Bal", 
+                                 Betu_Pap = "Betu_Pap", 
+                                 Lari_Lar = "Lari_Lar", 
+                                 Pice_Gla = "Pice_Gla",
+                                 Pice_Mar = "Pice_Mar", 
+                                 Pinu_Ban = "Pinu_Ban", 
+                                 Pinu_Con = "Pinu_Con", 
+                                 Popu_Bal = "Popu_Bal", 
+                                 Popu_Tre = "Popu_Tre")[Boreal]]
+  
+  sppEquivalencies_CA <- sppEquivalencies_CA[!is.na(NWT)]
+  sppEquivalencies_CA$EN_generic_short <- sppEquivalencies_CA$NWT
+  
+  
 .objects <- list(
-  "birdsList" = c("BBWA", "BOCH", "RBNU"),
-  "uplandsRaster" = uplandsRaster)
+  "birdsList" = birdSpecies,
+  "uplandsRaster" = uplandsRaster,
+    "rasterToMatch" = rasterToMatch,
+"studyArea" = studyArea,
+ "sppEquiv" = sppEquivalencies_CA,
+    "sppEquivCol" = sppEquivCol)
+
 modules <- list("birdsNWT")
 inputs <- list()
 outputs <- list()

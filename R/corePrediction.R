@@ -4,9 +4,9 @@ corePrediction <- function(bird, successionLayers,
                            currentTime,
                            modelList,
                            overwritePredictions,
-                           pathData = pathData,
-                           studyArea = studyArea,
-                           rasterToMatch = rasterToMatch){
+                           pathData,
+                           studyArea,
+                           rasterToMatch){
   
   successionLayersNames <- names(successionLayers)
   staticLayersNames <- names(staticLayers)
@@ -26,6 +26,7 @@ corePrediction <- function(bird, successionLayers,
           tryCatch({
             stkLays <- raster::stack(successionLayers, staticLayers)
           }, error = function(e){
+            stop("crs and or extents don't align. Trying postProcessing succession layers") # TEMPORARY!!!
             message("crs and or extents don't align. Trying postProcessing succession layers")
             successionLayers <- lapply(X = seq_len(nlayers(successionLayers)), FUN = function(layer){
               lay <- postProcess(successionLayers[[layer]], studyArea = studyArea, rasterToMatch = staticLayers[[1]],
@@ -54,8 +55,8 @@ corePrediction <- function(bird, successionLayers,
           message(crayon::green("Masking ", bird , " prediction to ", crayon::red("uplands"), " for time ", currentTime))
           predictedMasked <- reproducible::postProcess(x = basePlot, rasterToMatch = uplandsRaster, 
                                                        maskWithRTM = TRUE, destinationPath = pathData, filename2 = NULL)
-          raster::writeRaster(x = predictedMasked, filename = predictedName,
-                              format = "GTiff", overwrite = TRUE)
+          # raster::writeRaster(x = predictedMasked, filename = predictedName,
+          #                     format = "GTiff", overwrite = TRUE)
           
         }
         predicted <- raster(predictedName)

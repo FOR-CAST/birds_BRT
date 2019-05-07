@@ -38,21 +38,25 @@ predictDensities <- function(birdSpecies,
       message(crayon::red(paste0("Paralellizing for:\n", paste(birdSpecies, collapse = "\n"),
                                  "\nUsing ", nCores, " cores \n",
                                  "\nMessages will be suppressed until done")))
-
+    browser() 
     uplandsRaster[] <- uplandsRaster[]
     successionLayers[] <- successionLayers[]
     staticLayers[] <- staticLayers[]
-    predictionPerSpecies <-  pemisc::Map2(cl = cl, f = corePrediction, bird = birdSpecies,
+    rasterToMatch[] <- rasterToMatch[]
+
+    # I should bring everything out of this function and really only pass birdSpecues, modelList and all the layers as a DF. 
+    # NO WRITING!! Bring it all back out and lapply through for writing the layers.
+    # After corePrediction (that should really just be the prediction function), rebuild the rasters and write each one at a time, 
+    # returning the paths
+    predictionPerSpecies <-  pemisc::Map2(cl = cl, f = corePrediction, bird = birdSpecies, modelList = modelList,
                                         MoreArgs = list(
                                           successionLayers = successionLayers,
                                           uplandsRaster = uplandsRaster,
                                           staticLayers = staticLayers,
                                           currentTime = currentTime,
-                                          modelList = modelList,
                                           overwritePredictions = overwritePredictions,
                                           pathData = pathData,
-                                          studyArea = studyArea,
-                                          rasterToMatch = rasterToMatch))
+                                          studyArea = studyArea))
   }
   names(predictionPerSpecies) <- birdSpecies
   return(predictionPerSpecies)

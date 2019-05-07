@@ -24,7 +24,11 @@ defineModule(sim, list(
     defineParameter("nCores", "character|numeric", "auto", NA, NA, paste0("If parallelizing, how many cores to use?",
                                                                           " Use 'auto' (90% of available), or numeric")),
     defineParameter(name = "baseLayer", class = "character", default = 2005, min = NA, max = NA, 
-                    desc = "Which layer should be used? LCC05 or LCC10?")
+                    desc = "Which layer should be used? LCC05 or LCC10?"),
+    defineParameter(name = "quickLoad", class = "logical", default = FALSE, min = NA, max = NA, 
+                    desc = "Quickly load models?"),
+    defineParameter(name = "overwritePredictions", class = "logical", default = FALSE, min = NA, max = NA, 
+                    desc = "Should overwrite bird predictions thta might be available?")
   ),
   inputObjects = bind_rows(
     expectsInput(objectName = "wetlandRaster", objectClass = "RasterLayer",
@@ -80,12 +84,12 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       
     },
     loadModels = {
-      sim$birdModels <- Cache(loadBirdModels, birdsList = sim$birdsList,
+      sim$birdModels <- loadBirdModels(birdsList = sim$birdsList,
                               folderUrl = extractURL("urlModels"),
                               pathData = dataPath(sim),
                               version = P(sim)$version,
-                              cloudFolderID = sim$cloudFolderID,
-                              omitArgs = "pathData")
+                              cloudFolderID = sim$cloudFolderID, 
+                              quickLoad = P(sim)$quickLoad)
       message("Bird models loaded for: \n", paste(sim$birdsList, collapse = "\n"))
     },
     loadFixedLayers = {
@@ -105,21 +109,21 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       mod$cohortData <- sim$cohortData
       } else {
       mod$cohortData <- createModObject(data = "cohortData", sim = sim,
-      pathInput = inputPath(sim), time = time(sim))
+      pathInput = inputPath(sim), currentTime = time(sim))
       }
       
       if (!is.null(sim$pixelGroupMap)){
         mod$pixelGroupMap <- sim$pixelGroupMap
       } else {
         mod$pixelGroupMap <- createModObject(data = "pixelGroupMap", sim = sim, 
-                                             pathInput = inputPath(sim), time = time(sim))
+                                             pathInput = inputPath(sim), currentTime = time(sim))
       }
       
       if (!is.null(sim$simulatedBiomassMap)){
         mod$simulatedBiomassMap <- sim$simulatedBiomassMap
       } else {
         mod$simulatedBiomassMap <- createModObject(data = "simulatedBiomassMap", sim = sim, 
-                                                   pathInput = inputPath(sim), time = time(sim))
+                                                   pathInput = inputPath(sim), currentTime = time(sim))
       }
       
       if (any(is.null(mod$pixelGroupMap), is.null(mod$cohortData), is.null(mod$simulatedBiomassMap))) {
@@ -147,8 +151,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                   is.null(mod$cohortData)))
           stop("useTestSpeciesLayers is FALSE, but apparently no vegetation simulation was run")
         
-        sim$successionLayers <- Cache(createSpeciesStackLayer,
-                                      modelList = sim$birdModels,
+        sim$successionLayers <- createSpeciesStackLayer(modelList = sim$birdModels,
                                       simulatedBiomassMap = mod$simulatedBiomassMap,
                                       cohortData = mod$cohortData,
                                       staticLayers = sim$staticLayers,
@@ -157,12 +160,11 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                       pixelGroupMap = mod$pixelGroupMap,
                                       pathData = dataPath(sim),
                                       forestOnly = sim$forestOnly,
-                                      userTags = paste0("successionLayers", time(sim)),
-                                      omitArgs = "pathData")
+                                      uplandsRaster = sim$uplandsRaster,
+                                      rasterToMatch = sim$rasterToMatch)
       }
       
-      sim$birdPrediction[[paste0("Year", time(sim))]] <- Cache(predictDensities, birdSpecies = sim$birdsList,
-                                                               uplandsRaster = sim$uplandsRaster,
+      sim$birdPrediction[[paste0("Year", time(sim))]] <- predictDensities(birdSpecies = sim$birdsList,
                                                                successionLayers = sim$successionLayers,
                                                                staticLayers = sim$staticLayers,
                                                                currentTime = time(sim),
@@ -171,11 +173,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                                                overwritePredictions = P(sim)$overwritePredictions,
                                                                useParallel = P(sim)$useParallel,
                                                                nCores = P(sim)$nCores,
-                                                               studyArea = sim$studyArea,
-                                                               rasterToMatch = sim$rasterToMatch,
-                                                               omitArgs = c("destinationPath", "nCores", 
-                                                                            "useParallel", "pathData"),
-                                                               userTags = paste0("predictedBirds", time(sim)))
+                                                               studyArea = sim$studyArea)
 
         sim <- scheduleEvent(sim, time(sim) + P(sim)$predictionInterval, "birdsNWT", "predictBirds")
       

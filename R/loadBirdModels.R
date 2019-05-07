@@ -2,7 +2,19 @@ loadBirdModels <- function(birdsList = sim$birdsList,
                            folderUrl = extractURL("urlModels"),
                            cloudFolderID = sim$cloudFolderID,
                            pathData = dataPath(sim),
-                           version){
+                           version,
+                           quickLoad = FALSE){
+if (quickLoad){
+  modelsPath <- checkPath(file.path(pathData, "models"), create = TRUE)
+  bdAvailable <- list.files(path = file.path(getwd(), "modules/birdsNWT/data/models"), 
+                            pattern = paste0("brt", version, ".R"), full.names = TRUE, 
+                            recursive = FALSE)
+  downloadedModels <- lapply(X = bdAvailable, FUN = function(modelFile){
+    modelFile <- basename(modelFile)
+    return(get(load(file.path(modelsPath, modelFile))))
+  })
+} else {
+  
   reproducible::Require("googledrive")
   filesToDownload <- Cache(googledrive::drive_ls, path = as_id(folderUrl), pattern = paste0("brt", version, ".R"))
   modelsPath <- checkPath(file.path(pathData, "models"), create = TRUE)
@@ -10,11 +22,11 @@ loadBirdModels <- function(birdsList = sim$birdsList,
   downloadedModels <- lapply(X = modelsForBirdList, FUN = function(modelFile){
     if (!file.exists(file.path(modelsPath, modelFile))){
       googledrive::drive_download(file = as_id(filesToDownload[filesToDownload$name %in% modelFile, ]$id), #modelFile,
-            path = file.path(modelsPath, modelFile), overwrite = TRUE)
+                                  path = file.path(modelsPath, modelFile), overwrite = TRUE)
     }
     return(get(load(file.path(modelsPath, modelFile))))
   })
-
+}
   names(downloadedModels) <- birdsList
   return(downloadedModels)
 }
