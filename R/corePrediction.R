@@ -5,8 +5,9 @@ corePrediction <- function(bird, model, birdDensityRas = NULL,
                            currentTime,
                            pathData,
                            overwritePredictions = FALSE){
-  
+
 message(crayon::yellow(paste0("Predicting for ", bird , ". Prediction for time ", currentTime)))
+
   if ("glmerMod" %in% class(model)){
     nameStackRas1 <- names(model@frame)[2]
     nameStackRas2 <- names(model@frame)[3]
