@@ -59,6 +59,7 @@ library("raster")
 
 # Source functions in R folder
 invisible(sapply(X = list.files(file.path(getwd(), "R"), full.names = TRUE), FUN = source))
+invisible(sapply(X = list.files(file.path("R"), full.names = TRUE), FUN = source))
 # invisible(sapply(X = list.files(dirname(getwd()), "functions", full.names = TRUE), FUN = source))
 # 
 # # Set a storage project folder
@@ -86,10 +87,10 @@ invisible(sapply(X = list.files(file.path(getwd(), "R"), full.names = TRUE), FUN
 
 setPaths(modulePath = file.path(getwd(), "modules"), cachePath = file.path(getwd(), "cache"),
          inputPath = file.path(getwd(), "outputs/19MAR19"), 
-         outputPath = file.path(getwd(), "outputs/29MAR19")) # Had to override... don't have time to redo the code up there
+         outputPath = file.path(getwd(), "outputs/14MAY19")) # Had to override... don't have time to redo the code up there
 getPaths() # shows where the 4 relevant paths are
 
-times <- list(start = 0, end = 1)
+times <- list(start = 0, end = 100)
 
 parameters <- list(
   .progress = list(type = "text", interval = 1), # for a progress bar
@@ -97,15 +98,16 @@ birdsNWT = list(
     "baseLayer" = 2005,
     "overwritePredictions" = FALSE,
     "useTestSpeciesLayers" = FALSE, # Set it to false when you actually have results from LandR_Biomass simulations to run it with
-    "useParallel" = FALSE, # Using parallel in windows is currently not working.
+    "useParallel" = TRUE, # Using parallel in windows is currently not working.
     "predictionInterval" = 10,
     "quickLoad" = TRUE
   )
 )
 
-  isEDHZHIE <- TRUE
+  isEDHZHIE <- FALSE
   if (isEDHZHIE){
-    Edehzhie.url <- "https://drive.google.com/open?id=1o2VamVILFx8SHqMCPC8bmjM8pkr5fsks"
+    Edehzhie.url <- "https://drive.google.com/open?id=15n9BOtswKCJ81-us1u8Dbs0WT9f8bagq"
+#"https://drive.google.com/open?id=1o2VamVILFx8SHqMCPC8bmjM8pkr5fsks"
 
   studyArea <- Cache(prepInputs,
                              url = Edehzhie.url,
@@ -147,14 +149,15 @@ sppEquivCol <- "NWT"
   
   
 .objects <- list(
-  "birdsList" = birdSpecies,
+  "birdsList" = c("AMRE", "BLPW", "CAWA", "FOSP", 
+"OSFL", "OVEN", "PAWA", "RCKI", "RUBL", "WCSP"), #birdSpecies,
   "uplandsRaster" = uplandsRaster,
     "rasterToMatch" = rasterToMatch,
 "studyArea" = studyArea,
  "sppEquiv" = sppEquivalencies_CA,
     "sppEquivCol" = sppEquivCol)
 
-modules <- list("birdsNWT")
+modules <- list("birdsNWT", "comm_metricsNWT")
 inputs <- list()
 outputs <- list()
 

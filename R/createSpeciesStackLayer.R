@@ -26,9 +26,9 @@ reproducible::Require("raster")
   if (!all(unlist(lapply(list(uplandsRaster, forestOnly, rasterToMatch), FUN = is, class2 = "RasterLayer"))))
     stop("At least one of your layers (sim$uplandRaster, sim$forestOnly, sim$rasterToMatch) is NULL. Please debug.")
   forestUplandRTM <- uplandsRaster * forestOnly * rasterToMatch
-  if (!names(table(forestUplandRTM, useNA = TRUE)) %in% c("0", "1", NA))
+  if (any(!names(table(forestUplandRTM[], useNA = "ifany")) %in% c("0", "1", NA)))
     forestUplandRTM[forestUplandRTM > 0 | forestUplandRTM < 0] <- 1
-  if (!names(table(forestUplandRTM, useNA = TRUE)) %in% c("0", "1", NA))
+  if (any(!names(table(forestUplandRTM[], useNA = "ifany")) %in% c("0", "1", NA)))
     stop("One or more of your rasters (sim$uplandRaster, sim$forestOnly, sim$rasterToMatch)",
          " is not binary even after converting. Please debug.")
     

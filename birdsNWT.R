@@ -166,6 +166,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       
       sim$birdPrediction[[paste0("Year", time(sim))]] <- predictDensities(birdSpecies = sim$birdsList,
                                                                successionLayers = sim$successionLayers,
+                                                               uplandsRaster = sim$uplandsRaster,
                                                                staticLayers = sim$staticLayers,
                                                                currentTime = time(sim),
                                                                modelList = sim$birdModels,
@@ -173,7 +174,8 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                                                overwritePredictions = P(sim)$overwritePredictions,
                                                                useParallel = P(sim)$useParallel,
                                                                nCores = P(sim)$nCores,
-                                                               studyArea = sim$studyArea)
+                                                               studyArea = sim$studyArea,
+                                                               rasterToMatch = sim$rasterToMatch)
 
         sim <- scheduleEvent(sim, time(sim) + P(sim)$predictionInterval, "birdsNWT", "predictBirds")
       
