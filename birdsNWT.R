@@ -16,6 +16,22 @@ defineModule(sim, list(
   documentation = list("README.txt", "birdsNWT.Rmd"),
   reqdPkgs = list("googledrive", "data.table", "raster", "gbm", "crayon", "plyr", "dplyr"),
   parameters = rbind(
+    defineParameter("scenario", "character", NA, NA, NA, paste0("Are these predictions from a specific scenario?",
+                                                                  " If not, leave it as NA")),
+    defineParameter("rastersShowingNA", "logical", FALSE, NA, NA, paste0("Should the raster present NA where wetlands are?",
+                                                                       " This is because LandR doesn't predict for wetlands")),
+    defineParameter("predictLastYear", "logical", TRUE, NA, NA, paste0("Should it schedule events for the last year",
+                                                                       " of simulation if this is not a multiple of interval?")),
+    defineParameter("useStaticPredictionsForNonForest", "logical", TRUE, NA, NA, paste0("If TRUE, it will use the original KNN data to fill up the NA's",
+                                                                                        " back after if we don't want to leave NA pixels in the ",
+                                                                                        "predictions, independently of having the pixelGroupMap ",
+                                                                                        "being masked to uplands or not")),
+    defineParameter("useOnlyUplandsForPrediction", "logical", TRUE, NA, NA, paste0("Should the bird layers be masked to forest uplands only? masks",
+                                                                                   " pixelGroupMap with uplands as quality of DUCKS layer is better",
+                                                                                   " than LCC05 to ID the wetlands. We currently have succession ",
+                                                                                   "happening in some wetlands because of the low quality of LCC05.",
+                                                                                   " This should not be happening. But as the layer is proprietary, ",
+                                                                                   "we can't use it in LandR.")),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching?"),
     defineParameter("version", "character", "2", NA, NA, "Number of the bird module version to be used"),
     defineParameter("useParallel", "logical", FALSE, NA, NA, "Should bird prediction be parallelized?"),
@@ -23,7 +39,7 @@ defineModule(sim, list(
     defineParameter("predictionInterval", "numeric", 10, NA, NA, "Time between predictions"),
     defineParameter("nCores", "character|numeric", "auto", NA, NA, paste0("If parallelizing, how many cores to use?",
                                                                           " Use 'auto' (90% of available), or numeric")),
-    defineParameter(name = "baseLayer", class = "character", default = 2005, min = NA, max = NA, 
+    defineParameter(name = "baseLayer", class = "numeric", default = 2005, min = NA, max = NA, 
                     desc = "Which layer should be used? LCC05 or LCC10?"),
     defineParameter(name = "quickLoad", class = "logical", default = FALSE, min = NA, max = NA, 
                     desc = "Quickly load models?"),
@@ -31,6 +47,9 @@ defineModule(sim, list(
                     desc = "Should overwrite bird predictions thta might be available?")
   ),
   inputObjects = bind_rows(
+    expectsInput(objectName = "waterRaster", objectClass = "RasterLayer",
+                 desc = "Wetland raster for excluding water from final bird layers",
+                 sourceURL = NA),
     expectsInput(objectName = "wetlandRaster", objectClass = "RasterLayer",
                  desc = "Wetland raster for creating upland raster",
                  sourceURL = NA),
@@ -132,24 +151,28 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
 
       # schedule future event(s)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$predictionInterval, "birdsNWT", "gettingData")
+      if (P(sim)$predictLastYear){
+        if (all(time(sim) == start(sim), (end(sim)-start(sim)) != 0))
+          sim <- scheduleEvent(sim, end(sim), "birdsNWT", "gettingData")
+      }
       
     },
     predictBirds = {
       if (P(sim)$useTestSpeciesLayers == TRUE){
         message("Using test layers for species. Predictions will be static and identical to original data.")
-        sim$successionLayers <- Cache(loadTestSpeciesLayers, 
-                                      modelList = sim$birdModels,
+        sim$successionLayers <- Cache(prepInputStack,
+                                      url = "https://drive.google.com/open?id=1QiwMJpbQYeBH5ifNZDEXe04bHmn-w4Oc",
                                       pathData = outputPath(sim),
                                       studyArea = sim$studyArea,
                                       rasterToMatch = sim$rasterToMatch)
       } else {
-        if (any(!suppliedElsewhere("simulatedBiomassMap", sim), 
+        if (any(!suppliedElsewhere("simulatedBiomassMap", sim),
                 !suppliedElsewhere("cohortData", sim),
                 !suppliedElsewhere("pixelGroupMap", sim)))
           if (any(is.null(mod$simulatedBiomassMap), 
                   is.null(mod$pixelGroupMap),
                   is.null(mod$cohortData)))
-          stop("useTestSpeciesLayers is FALSE, but apparently no vegetation simulation was run")
+          stop("useTestSpeciesLayers is FALSE, but apparently no vegetation simulation was run. Check your inputs folder or simulation module.")
         
         sim$successionLayers <- createSpeciesStackLayer(modelList = sim$birdModels,
                                       simulatedBiomassMap = mod$simulatedBiomassMap,
@@ -161,23 +184,32 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                       pathData = dataPath(sim),
                                       forestOnly = sim$forestOnly,
                                       uplandsRaster = sim$uplandsRaster,
-                                      rasterToMatch = sim$rasterToMatch)
+                                      rasterToMatch = sim$rasterToMatch,
+                                      useOnlyUplandsForPrediction = P(sim)$useOnlyUplandsForPrediction,
+                                      useStaticPredictionsForNonForest = P(sim)$useStaticPredictionsForNonForest)
       }
-      
+
       sim$birdPrediction[[paste0("Year", time(sim))]] <- predictDensities(birdSpecies = sim$birdsList,
                                                                successionLayers = sim$successionLayers,
                                                                uplandsRaster = sim$uplandsRaster,
                                                                staticLayers = sim$staticLayers,
                                                                currentTime = time(sim),
                                                                modelList = sim$birdModels,
-                                                               pathData = dataPath(sim),
+                                                               pathData = outputPath(sim),
                                                                overwritePredictions = P(sim)$overwritePredictions,
                                                                useParallel = P(sim)$useParallel,
                                                                nCores = P(sim)$nCores,
                                                                studyArea = sim$studyArea,
-                                                               rasterToMatch = sim$rasterToMatch)
+                                                               rasterToMatch = sim$rasterToMatch,
+                                                               waterRaster = sim$waterRaster,
+                                                               rastersShowingNA = P(sim)$rastersShowingNA,
+                                                               scenario = P(sim)$scenario)
 
         sim <- scheduleEvent(sim, time(sim) + P(sim)$predictionInterval, "birdsNWT", "predictBirds")
+        if (P(sim)$predictLastYear){
+          if (all(time(sim) == start(sim), (end(sim)-start(sim)) != 0))
+            sim <- scheduleEvent(sim, end(sim), "birdsNWT", "predictBirds")
+        }
       
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -257,6 +289,20 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
   if (extent(sim$uplandsRaster) != extent(sim$studyArea)){
     sim$uplandsRaster <- postProcess(x = sim$uplandsRaster, studyArea = sim$studyArea,
                                      destinationFolder = dataPath(sim), filename2 = NULL)
+  }
+  if (!suppliedElsewhere("waterRaster", sim)){
+    wetlandRaster <- Cache(prepInputsLayers_DUCKS, destinationPath = dataPath(sim), 
+                           studyArea = sim$studyArea, 
+                           userTags = "objectName:wetlandRaster")
+    sim$waterRaster <- Cache(classifyWetlands, LCC = P(sim)$baseLayer,
+                             wetLayerInput = wetlandRaster,
+                             pathData = dataPath(sim),
+                             studyArea = sim$studyArea,
+                             userTags = c("objectName:wetLCC"))
+    waterVals <- raster::getValues(sim$waterRaster) # Uplands = 3, Water = 1, Wetlands = 2, so 2 and 3 to NA
+    waterVals[waterVals == 1] <- NA
+    waterVals[waterVals > 1] <- 1
+    sim$waterRaster <- raster::setValues(sim$waterRaster, waterVals)
   }
   
   return(invisible(sim))

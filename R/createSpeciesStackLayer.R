@@ -8,7 +8,9 @@ createSpeciesStackLayer <- function(modelList,
                                     pathData,
                                     forestOnly,
                                     uplandsRaster,
-                                    rasterToMatch){
+                                    rasterToMatch,
+                                    useOnlyUplandsForPrediction,
+                                    useStaticPredictionsForNonForest){
 reproducible::Require("data.table")
 reproducible::Require("plyr")
 reproducible::Require("raster")
@@ -23,6 +25,10 @@ reproducible::Require("raster")
                                                 speciesName = sp)
   })
   )
+  
+  # Here is where birds get masked to upland forested sites only. We should not do that IF LandR is predicting well for 
+  # lower biomass sites
+if(useOnlyUplandsForPrediction){
   if (!all(unlist(lapply(list(uplandsRaster, forestOnly, rasterToMatch), FUN = is, class2 = "RasterLayer"))))
     stop("At least one of your layers (sim$uplandRaster, sim$forestOnly, sim$rasterToMatch) is NULL. Please debug.")
   forestUplandRTM <- uplandsRaster * forestOnly * rasterToMatch
@@ -33,7 +39,8 @@ reproducible::Require("raster")
          " is not binary even after converting. Please debug.")
     
   pixelGroupMap <- postProcess(x = pixelGroupMap, rasterToMatch = forestUplandRTM, destinationPath = tempdir(),
-                               filename2 = NULL, maskWithRTM = TRUE)
+                               filename2 = NULL, maskWithRTM = TRUE, useCache = FALSE)
+}
   # Iterate through species and for each species, plot the B in the `pixelGroupMap`
   names(speciesNames) <- speciesLayerNames$modelLayer[
     match(speciesLayerNames$speciesName, speciesNames)]
@@ -75,7 +82,7 @@ reproducible::Require("raster")
   } else {
     names(biomass) <- biomassLayerName
   }
-    
+  
   # Creat age map
   ageLayerName <- predictors[grepl(x = predictors, pattern = "Age")]
   ageMap <- raster(pixelGroupMap)
@@ -88,10 +95,55 @@ reproducible::Require("raster")
     raster::stack(biomass) %>%
     raster::stack(ageMap)
   
-  # Make sure that species that were not modeled by LandR still have a raster
+  if (useStaticPredictionsForNonForest){
+    if (useOnlyUplandsForPrediction){
+      message(paste0("Both useStaticPredictionsForNonForest and useOnlyUplandsForPrediction are TRUE.",
+                     "\nBiomass maps from simulation will be masked for only uplands using DU layer and \n",
+                     "all NA pixels in the map after that will be forecasted using the original biomass \n",
+                     "layers used to fit the model (kNN, Beaudoin et al., 2014)."))
+    }
+    
+    originalSpeciesLayers <- Cache(prepInputStack, url = "https://drive.google.com/open?id=1P6IHTsKPXkV5iqDm7E6LmlaEb7z3RggP", # This is probably the correct file with non holes ras
+                                   archive = "bcr6_2011rasters250.zip",
+                                   targetFile = "bcr6_2011rasters250.grd",
+                                   alsoExtract = "similar",
+                                   destinationPath = pathData, 
+                                   studyArea = studyArea,
+                                   rasterToMatch = rasterToMatch)
+    
+    #Matching the rasters names that I have, to mask the NA's
+    nameStack <- names(speciesStack)
+    matchedLays <- data.frame(toMask = seq(1:length(names(speciesStack))), 
+                            original = match(names(speciesStack), names(originalSpeciesLayers)))
+    matched <- split(matchedLays, seq(nrow(matchedLays)))
+    
+    message("Masking NA's in vegetation layers... This might take some time...")
+    
+    speciesStack <- raster::stack(lapply(X = matched, FUN = function(matching){
+      if (names(speciesStack[[matching[["toMask"]]]]) != names(originalSpeciesLayers[[matching[["original"]]]]))
+        stop("The original species raster and the succession one don't match. Please debug it.") # data check sanity
+      originalSpeciesLayers[[matching[["original"]]]]
+      speciesStack[[matching[["toMask"]]]]
+      valsOriginal <- raster::getValues(originalSpeciesLayers[[matching[["original"]]]])
+      valsToMask <- raster::getValues(speciesStack[[matching[["toMask"]]]])
+      valsToMask[is.na(valsToMask)] <- valsOriginal[is.na(valsToMask)]
+      speciesStack[[matching[["toMask"]]]] <- raster::setValues(x = speciesStack[[matching[["toMask"]]]], 
+                                                               values = valsToMask)
+      return(speciesStack[[matching[["toMask"]]]])
+    })
+    )
+    gc()
+    names(speciesStack) <- nameStack
+  }
+  
+  # Make sure that species that were not modeled by LandR still have a raster 
+  # IS THIS THE CORRECT BEHAVIOR? 
+  # ZERO? OR SHOULD BE MEAN?
   layersAvailable <- c(names(staticLayers), names(speciesStack))
   missingLayersNames <- setdiff(predictors, layersAvailable)
+  if (length(missingLayersNames) ==0) message(crayon::green("No layers missing, proceeding to prediction..."))
   if (length(missingLayersNames) !=0){
+    message(crayon::yellow("There are layers missing, will complete the prediction stack with zeroed layers..."))
     missingLayers <- lapply(X = missingLayersNames, FUN = function(miss){
       zeroedMap <- pixelGroupMap
       vals <- getValues(x = zeroedMap)
@@ -110,6 +162,6 @@ reproducible::Require("raster")
   } else {
     finalStk <- raster::stack(speciesStack)
   }
-
+gc()
   return(finalStk)
 }

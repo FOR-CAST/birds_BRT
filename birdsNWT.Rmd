@@ -44,57 +44,30 @@ devtools::install_github("PredictiveEcology/LandR@development")  # Updates SpaDE
 
 ```{r module_usage}
 
+setwd("/mnt/data/Micheletti/NWT/")
 # Load SpaDES
 library("SpaDES")
 library("raster")
-# 
-# dayOfRecording <- today <- toupper(format(Sys.time(), "%d%b%y"))
-# dayOfRecording <- "19MAR19"
-# 
-# isTEST <- TRUE
-# 
-# if (isTEST){
-#     dayOfRecording <- "19MAR19"
-# }
+
+options("spades.recoveryMode" = 1)
 
 # Source functions in R folder
 invisible(sapply(X = list.files(file.path(getwd(), "R"), full.names = TRUE), FUN = source))
-invisible(sapply(X = list.files(file.path("R"), full.names = TRUE), FUN = source))
-# invisible(sapply(X = list.files(dirname(getwd()), "functions", full.names = TRUE), FUN = source))
-# 
-# # Set a storage project folder
-# workDirectory <- getwd()
-# message("Your current temporary directory is ", tempdir())
-# 
-# create <- if (isTEST) NULL else TRUE 
-# checkInputPath <- tryCatch(checkPath(file.path(dirname(dirname(getwd())), "outputs", dayOfRecording)), error = function(e) NULL)
-# if (is.null(checkInputPath)){
-#   inpPath <- tempdir()
-# } else {
-#   inpPath <- checkInputPath
-# }
-# 
-# checkOutputPath <- tryCatch(checkPath(file.path(dirname(dirname(getwd())), "outputs", today), create = create), error = function(e) NULL)
-# if (is.null(checkOutputPath)){
-#   outPath <- tempdir()
-# } else {
-#   outPath <- checkOutputPath
-# }
-
-# setPaths(modulePath = file.path(dirname(getwd())), 
-#          inputPath = inpPath, outputPath = outPath)
-# getPaths() # shows where the 4 relevant paths are
+invisible(sapply(X = list.files(file.path("/mnt/data/Micheletti/NWT/modules/birdsNWT/R/"), full.names = TRUE), FUN = source))
+invisible(sapply(X = list.files(dirname(getwd()), "functions", full.names = TRUE), FUN = source)) 
 
 setPaths(modulePath = file.path(getwd(), "modules"), cachePath = file.path(getwd(), "cache"),
-         inputPath = file.path(getwd(), "outputs/19MAR19"), 
-         outputPath = file.path(getwd(), "outputs/14MAY19")) # Had to override... don't have time to redo the code up there
+         inputPath = file.path(getwd(), "outputs/08JUN19_noCS"), 
+         outputPath = file.path(getwd(), "outputs/08JUN19_noCS/birdPredictions"))
 getPaths() # shows where the 4 relevant paths are
 
-times <- list(start = 0, end = 100)
+times <- list(start = 2001, end = 2100)
 
 parameters <- list(
   .progress = list(type = "text", interval = 1), # for a progress bar
 birdsNWT = list(
+  "useStaticPredictionsForNonForest" = TRUE,
+    "useOnlyUplandsForPrediction" = TRUE,
     "baseLayer" = 2005,
     "overwritePredictions" = FALSE,
     "useTestSpeciesLayers" = FALSE, # Set it to false when you actually have results from LandR_Biomass simulations to run it with
@@ -106,22 +79,25 @@ birdsNWT = list(
 
   isEDHZHIE <- FALSE
   if (isEDHZHIE){
-    Edehzhie.url <- "https://drive.google.com/open?id=15n9BOtswKCJ81-us1u8Dbs0WT9f8bagq"
-#"https://drive.google.com/open?id=1o2VamVILFx8SHqMCPC8bmjM8pkr5fsks"
+    url.sA <- "https://drive.google.com/open?id=15n9BOtswKCJ81-us1u8Dbs0WT9f8bagq"
+# EDE.url <- "https://drive.google.com/open?id=1fYvNPwovjNtTABoGcegrvdFGkNfCUsxf" ???? Which Edezhie should I use?
+  } else {
+    url.sA <- "https://drive.google.com/open?id=1LUxoY2-pgkCmmNH5goagBp3IMpj6YrdU"
+}
 
   studyArea <- Cache(prepInputs,
-                             url = Edehzhie.url,
+                             url = url.sA,
                              destinationPath = getPaths()$inputPath[[1]],
-                             userTags = "edeSA",
+                             userTags = "studyArea", filename2 = NULL,
                              omitArgs = c("destinationPath"))
 
   rasterToMatch <- Cache(prepInputs, url = "https://drive.google.com/open?id=1fo08FMACr_aTV03lteQ7KsaoN9xGx1Df",
                               studyArea = studyArea,
                               targetFile = "RTM.tif", destinationPath = getPaths()$inputPath[[1]],
                          filename2 = NULL,
-                              userTags = "edeRTM",
+                              userTags = "RTM",
                               omitArgs = c("destinationPath", "filename2"))
-  }
+  
 # Passing the uplandsRaster here makes sure that all computers can use it as the operations take up a lot of memory
 uplandsRaster <- prepInputs(targetFile = "uplandsNWT250m.tif", studyArea = studyArea, rasterToMatch = rasterToMatch,
                             url = "https://drive.google.com/open?id=1EF67NCH7HqN6QZ0KGlpntB_Zcquu6NJe", 
@@ -161,8 +137,20 @@ modules <- list("birdsNWT", "comm_metricsNWT")
 inputs <- list()
 outputs <- list()
 
-birdsNWT <- simInitAndSpades(times = times, params = parameters, modules = modules,
+birds_noCS <- simInitAndSpades(times = times, params = parameters, modules = modules,
                  objects = .objects, debug = 2)
+
+# WITH CS
+
+setPaths(modulePath = file.path(getwd(), "modules"), cachePath = file.path(getwd(), "cache"),
+         inputPath = file.path(getwd(), "outputs/08JUN19"), 
+         outputPath = file.path(getwd(), "outputs/08JUN19/birdPredictions"))
+getPaths() # shows where the 4 relevant paths are
+
+birds_CS <- simInitAndSpades(times = times, params = parameters, modules = modules,
+                 objects = .objects, debug = 2)
+
+birds_CS <- restartSpades()
 
 ```
 

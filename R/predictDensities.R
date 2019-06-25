@@ -9,15 +9,30 @@ predictDensities <- function(birdSpecies,
                              useParallel = FALSE,
                              nCores = 1,
                              studyArea,
-                             rasterToMatch) {
+                             rasterToMatch,
+                             waterRaster,
+                             rastersShowingNA,
+                             scenario) {
   tryCatch({
     stkLays <- raster::stack(successionLayers, staticLayers)
-    stkLays[] <- stkLays[]
+    namesLays <- names(stkLays)
+    stkLays <- raster::stack(lapply(namesLays, function(lay){
+      message(crayon::blue("Bringing layer ", lay, " to memory..."))
+      stkLays[[lay]][] <- stkLays[[lay]][]
+      return(stkLays[[lay]])
+    }))
+    names(stkLays) <- namesLays
+    message(crayon::green("All layers in memory"))
+    
   }, error = function(e){
     stop("crs and or extents don't align. Check you layers have the same crs and projection before this call")
   })
-  predictedName <- as.list(file.path(pathData, paste0("predicted", birdSpecies, "Year", currentTime, ".tif")))
+  
+  
+  predictedName <- as.list(file.path(pathData, paste0(scenario, "predicted", birdSpecies, "Year", currentTime, ".tif")))
   names(predictedName) <- birdSpecies
+  message(crayon::yellow("Checking if predictions exist"))
+  
   
   allPredictionsExist <- all(unlist(lapply(predictedName, FUN = function(yearSpPrediction){
     fileExists <- file.exists(yearSpPrediction)
@@ -25,13 +40,14 @@ predictDensities <- function(birdSpecies,
   })))
   
   if (allPredictionsExist){
+    message(crayon::green("All predictions exist. Returning existing predictions"))
     predictionPerSpecies <- lapply(X = birdSpecies, FUN = function(bird){
       ras <- raster::raster(predictedName[[bird]])
     })
   } else {
-  
+  message(crayon::yellow("Rasters not found. Starting predictions"))
     if (nCores == "auto") {
-      nCores <- pemisc::optimalClusterNum(40000, maxNumClusters = length(birdSpecies))
+      nCores <- pemisc::optimalClusterNum(31000, maxNumClusters = length(birdSpecies))
     }
     if (all(.Platform$OS.type != "windows", isTRUE(useParallel))) {
       cl <- parallel::makeForkCluster(nCores, outfile = file.path(pathData, "logParallelBirdPrediction")) # Tried, works, too slow
@@ -43,7 +59,6 @@ predictDensities <- function(birdSpecies,
     }
   
     stackVectors <- raster::as.data.frame(stkLays)
-    
     if (!is.null(cl)){
       message(crayon::red(paste0("Paralellizing for:\n", paste(birdSpecies, collapse = "\n"),
                                  "\nUsing ", nCores, " cores \n",
@@ -77,11 +92,19 @@ predictDensities <- function(birdSpecies,
       birdRas <- raster(rasterToMatch) # Using the first as a template. All should be the same.
       birdRas <- raster::setValues(x = birdRas, values = as.numeric(spVec))
       
-      # re-Mask study area and for uplands
+      # re-Mask study area and/or for uplands
+    if (rastersShowingNA){
       message(crayon::green("Masking ", bird ,
                             " prediction to ", crayon::red("uplands"), " for time ", currentTime))
-      predictedMasked <- reproducible::postProcess(x = birdRas, rasterToMatch = uplandsRaster, 
+      predictedMasked <- reproducible::postProcess(x = birdRas, rasterToMatch = uplandsRaster,
                                                    maskWithRTM = TRUE, destinationPath = pathData, filename2 = NULL)
+    } else {
+      message(crayon::green("Masking ", bird ,
+                            " prediction to ", crayon::red("water"), " for time ", currentTime))
+      predictedMasked <- reproducible::postProcess(x = birdRas, rasterToMatch = waterRaster, 
+                                                   maskWithRTM = TRUE, 
+                                                   destinationPath = pathData, filename2 = NULL)
+    }
        raster::writeRaster(predictedMasked, 
                     filename = predictedName[[bird]], format = "GTiff")
     
@@ -91,7 +114,8 @@ predictDensities <- function(birdSpecies,
     rm(predictVec)
     invisible(gc())
   }
-  
+  message(crayon::green(paste0("Predictions finalized for ", currentTime, " for ")))
+  print(birdSpecies)
   names(predictionPerSpecies) <- birdSpecies
   return(predictionPerSpecies)
 }

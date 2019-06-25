@@ -9,6 +9,9 @@ if (quickLoad){
   bdAvailable <- list.files(path = file.path(getwd(), "modules/birdsNWT/data/models"), 
                             pattern = paste0("brt", version, ".R"), full.names = TRUE, 
                             recursive = FALSE)
+  bdAvailable <- unlist(lapply(X = birdsList, FUN = function(bird){
+    mod <- grepMulti(x = bdAvailable, patterns = bird)
+  }))
   downloadedModels <- lapply(X = bdAvailable, FUN = function(modelFile){
     modelFile <- basename(modelFile)
     return(get(load(file.path(modelsPath, modelFile))))
