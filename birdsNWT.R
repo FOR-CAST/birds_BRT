@@ -14,7 +14,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "birdsNWT.Rmd"),
-  reqdPkgs = list("googledrive", "data.table", "raster", "gbm", "crayon", "plyr", "dplyr"),
+  reqdPkgs = list("googledrive", "data.table", "raster", "gbm", "crayon", "plyr", "dplyr", "tati-micheletti/usefun"),
   parameters = rbind(
     defineParameter("scenario", "character", NA, NA, NA, paste0("Are these predictions from a specific scenario?",
                                                                   " If not, leave it as NA")),
