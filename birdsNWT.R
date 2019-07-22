@@ -104,7 +104,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
     },
     loadModels = {
       sim$birdModels <- loadBirdModels(birdsList = sim$birdsList,
-                              folderUrl = extractURL("urlModels"),
+                              folderUrl = sim$urlModels,
                               pathData = dataPath(sim),
                               version = P(sim)$version,
                               cloudFolderID = sim$cloudFolderID, 
@@ -294,15 +294,19 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
     wetlandRaster <- Cache(prepInputsLayers_DUCKS, destinationPath = dataPath(sim), 
                            studyArea = sim$studyArea, 
                            userTags = "objectName:wetlandRaster")
-    sim$waterRaster <- Cache(classifyWetlands, LCC = P(sim)$baseLayer,
+    sim$waterRaster <- Cache(usefun::classifyWetlands, LCC = P(sim)$baseLayer,
                              wetLayerInput = wetlandRaster,
                              pathData = dataPath(sim),
                              studyArea = sim$studyArea,
+                             rasterToMatch = sim$rasterToMatch,
                              userTags = c("objectName:wetLCC"))
     waterVals <- raster::getValues(sim$waterRaster) # Uplands = 3, Water = 1, Wetlands = 2, so 2 and 3 to NA
     waterVals[waterVals == 1] <- NA
     waterVals[waterVals > 1] <- 1
     sim$waterRaster <- raster::setValues(sim$waterRaster, waterVals)
+  }
+  if (!suppliedElsewhere("urlModels", sim)){
+    sim$urlModels <- extractURL("urlModels")
   }
   
   return(invisible(sim))
