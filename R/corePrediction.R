@@ -1,13 +1,15 @@
-corePrediction <- function(bird, model, birdDensityRas = NULL,
+corePrediction <- function(bird, model, birdDensityRas,
                            predictedName,
                            disturbanceRas = NULL,
-                           successionStaticLayers = NULL,
+                           successionLayers = NULL,
+                           staticLayers = NULL,
                            currentTime,
                            pathData,
                            overwritePredictions = FALSE){
-
-message(crayon::yellow(paste0("Predicting for ", bird , ". Prediction for time ", currentTime)))
-
+  
+  successionLayersNames <- names(successionLayers)
+  staticLayersNames <- names(staticLayers)
+  message(crayon::yellow(paste0("Predicting for ", bird , ". Prediction for time ", currentTime)))
   if ("glmerMod" %in% class(model)){
     nameStackRas1 <- names(model@frame)[2]
     nameStackRas2 <- names(model@frame)[3]
@@ -36,34 +38,11 @@ message(crayon::yellow(paste0("Predicting for ", bird , ". Prediction for time "
   focDis <- as.numeric(gsub("[^\\d]+", "", nameStackRas1, perl=TRUE))
   
   if (isTRUE(overwritePredictions)||!file.exists(predictedName)){
-    valsD <- log(raster::getValues(birdDensityRas)) # log the value of densities so it is the same of the original model
-    valsD[valsD < -0.99] <- -1
-    birdDensityRas <- raster::setValues(birdDensityRas, valsD)
-    rm(valsD)
-    gc()
-    tryCatch({
-      stkLays <- raster::stack(disturbanceRas, birdDensityRas)
-    }, error = function(e){
-      tryCatch({
-        problem <- if (unique(raster::res(birdDensityRas[[1]])) != unique(raster::res(disturbanceRas))) 
-          " different resolution" else if (raster::extent(birdDensityRas[[1]]) != raster::extent(disturbanceRas)) 
-            " different extents" else " possibly alignment"
-        message("At least one birdDensityRaster can't be stacked with disturbanceRaster. The probably problem is: ", problem)
-        warning("The density raster used has originally a resolution of ", raster::res(birdDensityRas[[1]]), 
-                "")
-        birdDensityRas <- reproducible::postProcess(birdDensityRas, rasterToMatch = disturbanceRas, 
-                                                    destinationPath = tempdir(), filename2 = NULL)
-        raster::extent(birdDensityRas) <- raster::alignExtent(extent = raster::extent(birdDensityRas),
-                                                              object = disturbanceRas,
-                                                              snap = "near")
-        stkLays <- raster::stack(disturbanceRas, birdDensityRas)
-      }, error = function(e){
-        stop("Please make sure the disturbanceRaster has the same crs, projection and alignment of the birdDensityRaster")
-      })
-    })
-    names(stkLays)[1] <- nameStackRas1
-    names(stkLays)[2] <- nameStackRas2
-    predicted <- suppressWarnings(fitModel(inRas = stkLays, 
+    birdDensityRas <- log(birdDensityRas) # log the value of densities so it is the same of the original model
+    birdDensityRas[birdDensityRas < -0.99] <- -1
+    vecDF <- data.frame(disturbanceRas, birdDensityRas)
+    colnames(vecDF) <- c(nameStackRas1, nameStackRas2)
+    predicted <- suppressWarnings(fitModel(inRas = vecDF, 
                                            inputModel = model, 
                                            x = bird, 
                                            tileYear = currentTime))
