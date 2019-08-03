@@ -1,5 +1,6 @@
 createSpeciesStackLayer <- function(modelList,
                                     simulatedBiomassMap,
+                                    urlStaticLayer,
                                     cohortData, # Should also have age
                                     sppEquiv,
                                     sppEquivCol,
@@ -103,21 +104,19 @@ if(useOnlyUplandsForPrediction){
                      "layers used to fit the model (kNN, Beaudoin et al., 2014)."))
     }
     
-    originalSpeciesLayers <- Cache(prepInputStack, url = "https://drive.google.com/open?id=1P6IHTsKPXkV5iqDm7E6LmlaEb7z3RggP", # This is probably the correct file with non holes ras
-                                   archive = "bcr6_2011rasters250.zip",
-                                   targetFile = "bcr6_2011rasters250.grd",
+    originalSpeciesLayers <- Cache(prepInputStack, url = urlStaticLayer, # This is probably the correct file with non holes ras
                                    alsoExtract = "similar",
                                    destinationPath = pathData, 
                                    studyArea = studyArea,
                                    rasterToMatch = rasterToMatch)
+    message("Original species layers contain:")
+    message(paste(names(originalSpeciesLayers), sep = '\n'))
     
     #Matching the rasters names that I have, to mask the NA's
     nameStack <- names(speciesStack)
     matchedLays <- data.frame(toMask = seq(1:length(names(speciesStack))), 
                             original = match(names(speciesStack), names(originalSpeciesLayers)))
     matched <- split(matchedLays, seq(nrow(matchedLays)))
-    
-    message("Masking NA's in vegetation layers... This might take some time...")
     
     speciesStack <- raster::stack(lapply(X = matched, FUN = function(matching){
       if (names(speciesStack[[matching[["toMask"]]]]) != names(originalSpeciesLayers[[matching[["original"]]]]))
@@ -141,9 +140,10 @@ if(useOnlyUplandsForPrediction){
   # ZERO? OR SHOULD BE MEAN?
   layersAvailable <- c(names(staticLayers), names(speciesStack))
   missingLayersNames <- setdiff(predictors, layersAvailable)
-  if (length(missingLayersNames) ==0) message(crayon::green("No layers missing, proceeding to prediction..."))
+  if (length(missingLayersNames) ==0) message(crayon::green("No layers missing, proceeding to prediction."))
   if (length(missingLayersNames) !=0){
-    message(crayon::yellow("There are layers missing, will complete the prediction stack with zeroed layers..."))
+    message(crayon::yellow(paste0("There are missing layers. Completing prediction stack with zeroed layers for: ")))
+    message(crayon::yellow(paste(missingLayersNames, sep = "\n")))
     missingLayers <- lapply(X = missingLayersNames, FUN = function(miss){
       zeroedMap <- pixelGroupMap
       vals <- getValues(x = zeroedMap)

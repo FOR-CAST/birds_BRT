@@ -80,18 +80,19 @@ predictDensities <- function(birdSpecies,
                                             predictedName = predictedName[[index]],
                                             successionStaticLayers = stackVectors,
                                             pathData = pathData,
-                                            currentTime = currentTime)
+                                            currentTime = currentTime) # The returned prediction is in density! So for abundance need to * 6.25
                            })
     }
     # Reconvert vectors into rasters
     rm(stackVectors)
     invisible(gc())
     predictionPerSpecies <- lapply(predictVec, FUN = function(spVec){
-      bird <- substr(attributes(spVec)[["prediction"]], 1, 4)
-      rasName <- paste0("prediction", attributes(spVec)[["prediction"]])
-      birdRas <- raster(rasterToMatch) # Using the first as a template. All should be the same.
-      birdRas <- raster::setValues(x = birdRas, values = as.numeric(spVec))
-      
+      if (class(spVec) == "numeric"){
+        bird <- substr(attributes(spVec)[["prediction"]], 1, 4)
+        rasName <- paste0("prediction", attributes(spVec)[["prediction"]])
+        birdRas <- raster(rasterToMatch) # Using the first as a template. All should be the same.
+        birdRas <- raster::setValues(x = birdRas, values = as.numeric(spVec))
+
       # re-Mask study area and/or for uplands
     if (rastersShowingNA){
       message(crayon::green("Masking ", bird ,
@@ -105,9 +106,12 @@ predictDensities <- function(birdSpecies,
                                                    maskWithRTM = TRUE, 
                                                    destinationPath = pathData, filename2 = NULL)
     }
-       raster::writeRaster(predictedMasked, 
-                    filename = predictedName[[bird]], format = "GTiff")
-    
+      raster::writeRaster(predictedMasked, 
+                          filename = predictedName[[bird]], format = "GTiff")
+      } else {
+        birdFull <- strsplit(spVec, "Year")
+        bird <- usefun::substrBoth(strng = birdFull[[1]][1], howManyCharacters = 4, fromEnd = TRUE)
+      }
         return(raster(predictedName[[bird]]))
     })
     names(predictionPerSpecies) <- birdSpecies      

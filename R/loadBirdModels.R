@@ -17,13 +17,8 @@ if (quickLoad){
     return(get(load(file.path(modelsPath, modelFile))))
   })
 } else {
-  
   reproducible::Require("googledrive")
   filesToDownload <- Cache(googledrive::drive_ls, path = as_id(folderUrl), pattern = paste0("brt", version, ".R"))
-  # browser()
-  # filesToDownload <- unlist(lapply(X = birdsList, FUN = function(bird){
-  #   filesToDownload <- usefun::grepMulti(x = filesToDownload, patterns = bird)# need to filter files to the birdList
-  # }))
   modelsPath <- checkPath(file.path(pathData, "models"), create = TRUE)
   modelsForBirdList <- filesToDownload$name[grepl(pattern = paste(birdsList, collapse = "|"), x = filesToDownload$name)]
   downloadedModels <- lapply(X = modelsForBirdList, FUN = function(modelFile){
@@ -34,6 +29,7 @@ if (quickLoad){
     return(get(load(file.path(modelsPath, modelFile))))
   })
 }
-  names(downloadedModels) <- birdsList
+
+  names(downloadedModels) <- usefun::substrBoth(strng = modelsForBirdList, howManyCharacters = 4, fromEnd = FALSE)
   return(downloadedModels)
 }

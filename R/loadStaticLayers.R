@@ -1,10 +1,10 @@
-loadStaticLayers <- function(fileURL = extractURL("urlStaticLayers"),
-                             pathData = dataPath(sim),
-                             studyArea = sim$studyArea,
-                             rasterToMatch = sim$rasterToMatch){
+loadStaticLayers <- function(fileURL,
+                             pathData,
+                             studyArea,
+                             rasterToMatch){
   require("raster")
-  stkPre <- preProcess(url = fileURL, targetFile = "bcr6_2011rasters250.grd",
-                       alsoExtract = "bcr6_2011rasters250.gri",
+  stkPre <- preProcess(url = fileURL, 
+                       alsoExtract = "similar",
                     destinationPath = pathData)
   stk <- raster::stack(stkPre$targetFilePath)
   stkNames <- unlist(lapply(X = 1:length(stk@layers), FUN = function(layers){
@@ -31,5 +31,3 @@ loadStaticLayers <- function(fileURL = extractURL("urlStaticLayers"),
   names(staticLayers) <- fixedLayers # Maybe just passing the names to the stack would do the trick
   return(staticLayers)
 }
-
-rasterOptions(todisk = FALSE)

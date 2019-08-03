@@ -62,10 +62,13 @@ defineModule(sim, list(
                  desc = "Folder ID for cloud caching", sourceURL = NA),
     expectsInput(objectName = "urlModels", objectClass = "character", 
                  desc = "Url for the GDrive folder that has all model objects",
-                 sourceURL = "https://drive.google.com/open?id=1cpt-AKDbnlUEi6r70Oow2lEPrbzQfVpt"),
+                 sourceURL = "https://drive.google.com/open?id=19Ys5vHj6L_jyfrZdbUb6qpKyEfDfosQ9"),
+    # V2 Bird Models: "https://drive.google.com/open?id=1cpt-AKDbnlUEi6r70Oow2lEPrbzQfVpt
     expectsInput(objectName = "urlStaticLayers", objectClass = "RasterLayer", 
-                 desc = "Static Layers (WAT, URBAG, lLED25, DEV25 and landform) url", 
-                 sourceURL = "https://drive.google.com/open?id=1OzWUtBvVwBPfYiI_L_2S1kj8V6CzB92D"),
+                 desc = "Static Layers (WET, VRUG, WAT, URBAG, lLED25, DEV25 and landform) url", 
+                 sourceURL = "https://drive.google.com/open?id=1DsuIAt1eEkd1jXqSNCmlhs-DGoCa3KEY"),
+    # V2 Static layers: "https://drive.google.com/open?id=1OzWUtBvVwBPfYiI_L_2S1kj8V6CzB92D"
+    # "Static Layers (WAT, URBAG, lLED25, DEV25 and landform) url"
     expectsInput(objectName = "studyArea", objectClass = "SpatialPolygonDataFrame", 
                  desc = "Study area for the prediction. Currently only available for NWT", 
                  sourceURL = "https://drive.google.com/open?id=1P4grDYDffVyVXvMjM-RwzpuH1deZuvL3"),
@@ -86,7 +89,9 @@ defineModule(sim, list(
                                 "lLED25, DEV25 and landform) for the bird models")),
     createsOutput(objectName = "successionLayers", objectClass = "RasterStack", 
                   desc = paste0("Raster stack of all succession layers (species)", 
-                                " and total biomass for the bird models"))
+                                " and total biomass for the bird models")),
+    createsOutput(objectName = "unavailableModels", objectClass = "character", 
+                  desc = "Character vector with all missing models")
   )
 ))
 
@@ -109,10 +114,15 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                               version = P(sim)$version,
                               cloudFolderID = sim$cloudFolderID, 
                               quickLoad = P(sim)$quickLoad)
+      missingBirds <- setdiff(sim$birdsList, names(sim$birdModels))
+      if (length(missingBirds) != 0)
+        message(crayon::yellow("Models for the following are not available:\n", paste(missingBirds, collapse = "\n")))
+      sim$birdsList <- names(sim$birdModels)
       message("Bird models loaded for: \n", paste(sim$birdsList, collapse = "\n"))
+      sim$unavailableModels <- c(sim$unavailableModels, missingBirds)
     },
     loadFixedLayers = {
-      sim$staticLayers <- Cache(loadStaticLayers, fileURL = extractURL("urlStaticLayers"),
+      sim$staticLayers <- Cache(loadStaticLayers, fileURL = sim$urlStaticLayers,
                                 pathData = dataPath(sim), 
                                 studyArea = sim$studyArea,
                                 rasterToMatch = sim$rasterToMatch,
@@ -175,6 +185,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
           stop("useTestSpeciesLayers is FALSE, but apparently no vegetation simulation was run. Check your inputs folder or simulation module.")
         
         sim$successionLayers <- createSpeciesStackLayer(modelList = sim$birdModels,
+                                                        urlStaticLayer = sim$urlStaticLayers,
                                       simulatedBiomassMap = mod$simulatedBiomassMap,
                                       cohortData = mod$cohortData,
                                       staticLayers = sim$staticLayers,
@@ -204,7 +215,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                                                waterRaster = sim$waterRaster,
                                                                rastersShowingNA = P(sim)$rastersShowingNA,
                                                                scenario = P(sim)$scenario)
-
+      
         sim <- scheduleEvent(sim, time(sim) + P(sim)$predictionInterval, "birdsNWT", "predictBirds")
         if (P(sim)$predictLastYear){
           if (all(time(sim) == start(sim), (end(sim)-start(sim)) != 0))
@@ -308,6 +319,10 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
   if (!suppliedElsewhere("urlModels", sim)){
     sim$urlModels <- extractURL("urlModels")
   }
+  if (!suppliedElsewhere("urlStaticLayers", sim)){
+    sim$urlStaticLayers <- extractURL("urlStaticLayers")
+  }
+  sim$unavailableModels <- NULL
   
   return(invisible(sim))
 }
