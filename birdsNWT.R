@@ -33,7 +33,7 @@ defineModule(sim, list(
                                                                                    " This should not be happening. But as the layer is proprietary, ",
                                                                                    "we can't use it in LandR.")),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching?"),
-    defineParameter("version", "character", "2", NA, NA, "Number of the bird module version to be used"),
+    defineParameter("version", "character", "3", NA, NA, "Number of the bird module version to be used"),
     defineParameter("useParallel", "logical", FALSE, NA, NA, "Should bird prediction be parallelized?"),
     defineParameter("useTestSpeciesLayers", "logical", TRUE, NA, NA, "Use testing layers if forest succesion is not available?"),
     defineParameter("predictionInterval", "numeric", 10, NA, NA, "Time between predictions"),
@@ -62,13 +62,21 @@ defineModule(sim, list(
                  desc = "Folder ID for cloud caching", sourceURL = NA),
     expectsInput(objectName = "urlModels", objectClass = "character", 
                  desc = "Url for the GDrive folder that has all model objects",
-                 sourceURL = "https://drive.google.com/open?id=19Ys5vHj6L_jyfrZdbUb6qpKyEfDfosQ9"),
+                 sourceURL = "https://drive.google.com/open?id=1DD2lfSsVEOfHoob3fKaTvqOjwVG0ZByQ"),
     # V2 Bird Models: "https://drive.google.com/open?id=1cpt-AKDbnlUEi6r70Oow2lEPrbzQfVpt
+    # V3 Bird Models: "https://drive.google.com/open?id=19Ys5vHj6L_jyfrZdbUb6qpKyEfDfosQ9"
+    # V4 Bird Models: "https://drive.google.com/open?id=17RhA0KkmAJPpf4qss65I0F1wC77XmhzE"
+    # V5 Bird Models: "https://drive.google.com/open?id=1HLcPg2SCtembYvKFTAXl1M2cj7hYPshg"
+    # V6 Bird Models: "https://drive.google.com/open?id=1DD2lfSsVEOfHoob3fKaTvqOjwVG0ZByQ"
     expectsInput(objectName = "urlStaticLayers", objectClass = "RasterLayer", 
                  desc = "Static Layers (WET, VRUG, WAT, URBAG, lLED25, DEV25 and landform) url", 
                  sourceURL = "https://drive.google.com/open?id=1DsuIAt1eEkd1jXqSNCmlhs-DGoCa3KEY"),
     # V2 Static layers: "https://drive.google.com/open?id=1OzWUtBvVwBPfYiI_L_2S1kj8V6CzB92D"
-    # "Static Layers (WAT, URBAG, lLED25, DEV25 and landform) url"
+         # "Static Layers (WAT, URBAG, lLED25, DEV25 and landform) url"
+    # V3 Static layers: "https://drive.google.com/open?id=1DsuIAt1eEkd1jXqSNCmlhs-DGoCa3KEY"
+    # V4 Static layers: "https://drive.google.com/open?id=1DsuIAt1eEkd1jXqSNCmlhs-DGoCa3KEY"
+    # V5 Static layers: "https://drive.google.com/open?id=1DsuIAt1eEkd1jXqSNCmlhs-DGoCa3KEY"
+    # V6 Static layers: "https://drive.google.com/open?id=1DsuIAt1eEkd1jXqSNCmlhs-DGoCa3KEY"
     expectsInput(objectName = "studyArea", objectClass = "SpatialPolygonDataFrame", 
                  desc = "Study area for the prediction. Currently only available for NWT", 
                  sourceURL = "https://drive.google.com/open?id=1P4grDYDffVyVXvMjM-RwzpuH1deZuvL3"),
@@ -77,6 +85,9 @@ defineModule(sim, list(
                  sourceURL = "https://drive.google.com/open?id=1P4grDYDffVyVXvMjM-RwzpuH1deZuvL3"),
     expectsInput(objectName = "forestOnly", objectClass = "RasterLayer",
                  desc = "Raster to match but NA'ed for non-forest pixels", 
+                 sourceURL = NA),
+    expectsInput(objectName = "climateLayersBirds", objectClass = "RasterStack", # NOT SURE WHAT THIS IS GONNA BE YET. THERE ARE VARIABLES SUCH AS 
+                 desc = "climate variables for birds such as PPT_wt, MAP, EMT, TD, MAT", # PPT_wt, MAP, EMT, TD, MAT NEEDED... Need to hear back from Diana and Ian
                  sourceURL = NA)
   ),
   outputObjects = bind_rows(
@@ -131,7 +142,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
               paste(names(sim$staticLayers), collapse = "\n"))
     },
     gettingData = {
-      
+
       Require("magrittr")
       
       if (!is.null(sim$cohortData)){
@@ -199,7 +210,14 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                       useOnlyUplandsForPrediction = P(sim)$useOnlyUplandsForPrediction,
                                       useStaticPredictionsForNonForest = P(sim)$useStaticPredictionsForNonForest)
       }
-
+      
+      if (P(sim)$version %in% c("5", "6")) {
+        browser()
+        # IF THE VERSION IS 5 or 6, HERE IS WHERE I NEED TO ADD TO sim$successionLayers
+        # the layers from Climate!
+        sim$successionLayers <- raster::stack(sim$successionLayers, sim$climateLayersBirds)
+      }
+      
       sim$birdPrediction[[paste0("Year", time(sim))]] <- predictDensities(birdSpecies = sim$birdsList,
                                                                successionLayers = sim$successionLayers,
                                                                uplandsRaster = sim$uplandsRaster,
@@ -230,15 +248,38 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
 }
 
 .inputObjects <- function(sim) {
+  browser() # Maonly check if this below is correct
+  if (!suppliedElsewhere("urlModels", sim)){
+    if (P(sim)$version == "2"){
+      sim$urlModels <- "https://drive.google.com/open?id=1cpt-AKDbnlUEi6r70Oow2lEPrbzQfVpt"
+    } else {
+      if (params(sim)$version == "3"){
+        sim$urlModels <- "https://drive.google.com/open?id=19Ys5vHj6L_jyfrZdbUb6qpKyEfDfosQ9"
+      } else {
+        if (params(sim)$version == "4"){
+          sim$urlModels <- "https://drive.google.com/open?id=17RhA0KkmAJPpf4qss65I0F1wC77XmhzE"
+        } else {
+          if (params(sim)$version == "5"){
+            sim$urlModels <- "https://drive.google.com/open?id=1HLcPg2SCtembYvKFTAXl1M2cj7hYPshg"
+          } else {
+            if (params(sim)$version == "6") {
+              sim$urlModels <- "https://drive.google.com/open?id=1DD2lfSsVEOfHoob3fKaTvqOjwVG0ZByQ"
+            }
+          }
+        }
+      }
+    }
+  }
   
   dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
   if (!suppliedElsewhere(object = "birdsList", sim = sim)){
       birdsAvailable <- googledrive::drive_ls(
-        path = as_id("https://drive.google.com/open?id=1cpt-AKDbnlUEi6r70Oow2lEPrbzQfVpt"), 
-        pattern = paste0("brt2.R"))
+        path = as_id(sim$urlModels), 
+        pattern = paste0("brt", P(sim)$version, ".R"))
+      browser() # CHeck if I can improve next line using usefun
       sim$birdsList <- unlist(strsplit(x = birdsAvailable[["name"]], split = paste0("brt", P(sim)$version, ".R")))
-      sim$birdsList <- sim$birdsList[-which(grepl(pattern = "CONW", x = sim$birdsList))] # CONW Model has some sort of problem...
+      sim$birdsList <- sim$birdsList[-which(grepl(pattern = "CONW", x = sim$birdsList))] # CONW Model has some sort of problem in V3; Check V6!
       
       if (is.null(sim$birdsList))
         sim$birdsList <- c("REVI", "HETH", "RCKI", "HAFL", "WIWR", "GRCA", "RBNU", "WIWA", 
@@ -316,13 +357,25 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
     waterVals[waterVals > 1] <- 1
     sim$waterRaster <- raster::setValues(sim$waterRaster, waterVals)
   }
-  if (!suppliedElsewhere("urlModels", sim)){
-    sim$urlModels <- extractURL("urlModels")
-  }
   if (!suppliedElsewhere("urlStaticLayers", sim)){
-    sim$urlStaticLayers <- extractURL("urlStaticLayers")
+    if (P(sim)$version == "2"){ # Static Layers: WAT, URBAG, lLED25, DEV25 and landform
+      sim$urlStaticLayers <- "https://drive.google.com/open?id=1OzWUtBvVwBPfYiI_L_2S1kj8V6CzB92D"
+    } else {
+      if (P(sim)$version %in% c("3", "4", "5", "6")){ # Static Layers: WET, VRUG, WAT, URBAG, lLED25, DEV25 and landform
+        sim$urlStaticLayers <- "https://drive.google.com/open?id=1DsuIAt1eEkd1jXqSNCmlhs-DGoCa3KEY"
+      }
+    }
   }
-  sim$unavailableModels <- NULL
+  if (!suppliedElsewhere("climateLayersBirds", sim)){
+    if (P(sim)$version %in% c("5", "6")){
+      # TODO # Get the needed data somehow? GDrive?
+      stop("You need to supply a climate layer stacks with all variables that are beeing used to predict birds into the future with climate change")
+    } else {
+      sim$climateLayersBirds <-  NULL # Layers not needed for models 2-4
+    }
+  }
+  
+  sim$unavailableModels <- NULL # For potentially missing modules in comparison to birds list
   
   return(invisible(sim))
 }

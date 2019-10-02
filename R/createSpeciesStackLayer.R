@@ -120,7 +120,7 @@ if(useOnlyUplandsForPrediction){
     
     speciesStack <- raster::stack(lapply(X = matched, FUN = function(matching){
       if (names(speciesStack[[matching[["toMask"]]]]) != names(originalSpeciesLayers[[matching[["original"]]]]))
-        stop("The original species raster and the succession one don't match. Please debug it.") # data check sanity
+        stop("The original species raster and the succession one don't match. Please debug it.") # data sanity check 
       originalSpeciesLayers[[matching[["original"]]]]
       speciesStack[[matching[["toMask"]]]]
       valsOriginal <- raster::getValues(originalSpeciesLayers[[matching[["original"]]]])
