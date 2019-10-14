@@ -1,12 +1,14 @@
 loadStaticLayers <- function(fileURL,
                              pathData,
                              studyArea,
-                             rasterToMatch){
+                             rasterToMatch, 
+                             useCache = NULL, useCacheInternals = NULL){
   require("raster")
-  stkPre <- preProcess(url = fileURL, 
+  stkPre <- preProcess(url = fileURL,
                        alsoExtract = "similar",
-                    destinationPath = pathData)
-  stk <- raster::stack(stkPre$targetFilePath)
+                    destinationPath = pathData,
+                    omitArgs = c("useCache", "purge"))
+  stk <- raster::stack(stkPre$targetFilePath) # This file has all species too. Exclude those.
   stkNames <- unlist(lapply(X = 1:length(stk@layers), FUN = function(layers){
     lay <- stk@layers[[layers]]@data@names
     return(lay)
@@ -19,6 +21,7 @@ loadStaticLayers <- function(fileURL,
   staticLayers <- lapply(X = seq_len(nlayers(subStaticLayers)), FUN = function(layer){
     lay <- postProcess(subStaticLayers[[layer]], studyArea = studyArea, 
                        rasterToMatch = rasterToMatch, destinationPath = pathData, 
+                       useCache = useCacheInternals, omitArgs = c("purge", "useCache"),
                        filename2 = NULL)
     return(lay)
   })

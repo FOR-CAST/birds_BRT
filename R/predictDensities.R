@@ -12,7 +12,8 @@ predictDensities <- function(birdSpecies,
                              rasterToMatch,
                              waterRaster,
                              rastersShowingNA,
-                             scenario) {
+                             scenario,
+                             memUsedByEachProcess = 31000) {
   tryCatch({
     stkLays <- raster::stack(successionLayers, staticLayers)
     namesLays <- names(stkLays)
@@ -47,7 +48,7 @@ predictDensities <- function(birdSpecies,
   } else {
   message(crayon::yellow("Rasters not found. Starting predictions"))
     if (nCores == "auto") {
-      nCores <- pemisc::optimalClusterNum(31000, maxNumClusters = length(birdSpecies))
+      nCores <- pemisc::optimalClusterNum(memUsedByEachProcess, maxNumClusters = length(birdSpecies))
     }
     if (all(.Platform$OS.type != "windows", isTRUE(useParallel))) {
       cl <- parallel::makeForkCluster(nCores, outfile = file.path(pathData, "logParallelBirdPrediction")) # Tried, works, too slow
@@ -58,10 +59,12 @@ predictDensities <- function(birdSpecies,
       cl <- NULL
     }
   
-    stackVectors <- raster::as.data.frame(stkLays)
+    stackVectors <- data.table(getValues(stkLays))
+    
     if (!is.null(cl)){
-      message(crayon::red(paste0("Paralellizing for:\n", paste(birdSpecies, collapse = "\n"),
-                                 "\nUsing ", nCores, " cores \n",
+      message(crayon::red(paste0("Paralellizing for ",length(birdSpecies),"species:\n", 
+                                 paste(birdSpecies, collapse = "\n"),
+                                 "\n\nUsing ", nCores, " cores \n",
                                  "\nMessages will be suppressed until done")))
       predictVec <- clusterApplyLB(seq_along(birdSpecies),
                                    cl = cl, function(index) {

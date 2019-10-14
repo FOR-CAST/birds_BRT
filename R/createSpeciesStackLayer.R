@@ -139,11 +139,12 @@ if(useOnlyUplandsForPrediction){
   # IS THIS THE CORRECT BEHAVIOR? 
   # ZERO? OR SHOULD BE MEAN?
   layersAvailable <- c(names(staticLayers), names(speciesStack))
+  predictors <- usefun::grepMulti(x = predictors, patterns = "Species")
   missingLayersNames <- setdiff(predictors, layersAvailable)
   if (length(missingLayersNames) ==0) message(crayon::green("No layers missing, proceeding to prediction."))
   if (length(missingLayersNames) !=0){
     message(crayon::yellow(paste0("There are missing layers. Completing prediction stack with zeroed layers for: ")))
-    message(crayon::yellow(paste(missingLayersNames, sep = "\n")))
+    message(crayon::yellow(paste(missingLayersNames, collapse = ", ")))
     missingLayers <- lapply(X = missingLayersNames, FUN = function(miss){
       zeroedMap <- pixelGroupMap
       vals <- getValues(x = zeroedMap)
