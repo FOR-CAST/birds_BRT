@@ -44,7 +44,9 @@ defineModule(sim, list(
     defineParameter(name = "quickLoad", class = "logical", default = FALSE, min = NA, max = NA, 
                     desc = "Quickly load models?"),
     defineParameter(name = "overwritePredictions", class = "logical", default = FALSE, min = NA, max = NA, 
-                    desc = "Should overwrite bird predictions thta might be available?")
+                    desc = "Should overwrite bird predictions thta might be available?"),
+    defineParameter(name = "lowMem", class = "logical", default = FALSE, min = NA, max = NA, 
+                    desc = "Should the bird predictions return the final rasters (FALSE) or path to these (TRUE) ")
   ),
   inputObjects = bind_rows(
     expectsInput(objectName = "usrEmail", objectClass = "character",
@@ -116,11 +118,14 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
     eventType,
     init = {
 
+      #Make sure we only have one bird model for each species. Data sanity check
+      sim$birdsList <- unique(sim$birdsList)
+      
       # schedule future event(s)
       sim <- scheduleEvent(sim, start(sim), "birdsNWT", "loadModels")
       sim <- scheduleEvent(sim, start(sim), "birdsNWT", "loadFixedLayers")
       sim <- scheduleEvent(sim, start(sim), "birdsNWT", "gettingData")
-      sim <- scheduleEvent(sim, start(sim), "birdsNWT", "predictBirds", eventPriority = .last())
+      sim <- scheduleEvent(sim, start(sim), "birdsNWT", "predictBirds", eventPriority = 9)
       
     },
     loadModels = {
@@ -240,7 +245,8 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                                                waterRaster = sim$waterRaster,
                                                                rastersShowingNA = P(sim)$rastersShowingNA,
                                                                scenario = P(sim)$scenario,
-                                                               memUsedByEachProcess = ifelse(P(sim)$version %in% c("5", "6"), 120000, 31000))
+                                                               memUsedByEachProcess = ifelse(P(sim)$version %in% c("5", "6"), 130000, 31000),
+                                                               lowMem = lowMem)
       print(Sys.time()-t1)
         sim <- scheduleEvent(sim, time(sim) + P(sim)$predictionInterval, "birdsNWT", "predictBirds")
         if (P(sim)$predictLastYear){

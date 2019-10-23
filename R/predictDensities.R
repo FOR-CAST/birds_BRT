@@ -13,7 +13,8 @@ predictDensities <- function(birdSpecies,
                              waterRaster,
                              rastersShowingNA,
                              scenario,
-                             memUsedByEachProcess = 31000) {
+                             memUsedByEachProcess = 31000,
+                             lowMem = FALSE) {
   tryCatch({
     stkLays <- raster::stack(successionLayers, staticLayers)
     namesLays <- names(stkLays)
@@ -46,7 +47,20 @@ predictDensities <- function(birdSpecies,
       ras <- raster::raster(predictedName[[bird]])
     })
   } else {
-  message(crayon::yellow("Rasters not found. Starting predictions"))
+    # Which rasters we still don't have
+    
+    whichDontExist <- unlist(lapply(names(predictedName), FUN = function(yearSpPrediction){
+      fileExists <- file.exists(predictedName[[yearSpPrediction]])
+      if(fileExists){
+        return(NA)
+      } else {
+        return(yearSpPrediction)
+        }
+    }))
+    
+    whichDontExist <- whichDontExist[!is.na(whichDontExist)]
+    
+  message(crayon::yellow(paste0("Rasters not found for ", length(whichDontExist)," birds: ", paste(whichDontExist, collapse = ", "),". Starting predictions...")))
     if (nCores == "auto") {
       nCores <- pemisc::optimalClusterNum(memUsedByEachProcess, maxNumClusters = length(birdSpecies))
     }
@@ -62,13 +76,13 @@ predictDensities <- function(birdSpecies,
     stackVectors <- data.table(getValues(stkLays))
     
     if (!is.null(cl)){
-      message(crayon::red(paste0("Paralellizing for ",length(birdSpecies),"species:\n", 
-                                 paste(birdSpecies, collapse = "\n"),
-                                 "\n\nUsing ", nCores, " cores \n",
+      message(crayon::red(paste0("Paralellizing for ", length(whichDontExist),"species for year ", currentTime,":\n",
+                                 paste(whichDontExist, collapse = "\n"),
+                                 "\n\nUsing ", nCores, " cores in year ", currentTime,"\n",
                                  "\nMessages will be suppressed until done")))
-      predictVec <- clusterApplyLB(seq_along(birdSpecies),
+      predictVec <- clusterApplyLB(whichDontExist,
                                    cl = cl, function(index) {
-                                     corePrediction(bird = birdSpecies[[index]],
+                                     corePrediction(bird = index,
                                                     model = modelList[[index]],
                                                     predictedName = predictedName[[index]],
                                                     successionStaticLayers = stackVectors,
@@ -76,9 +90,9 @@ predictDensities <- function(birdSpecies,
                                                     currentTime = currentTime)
                                    })
     } else {
-      predictVec <- lapply(seq_along(birdSpecies),
+      predictVec <- lapply(whichDontExist,
                            function(index) {
-                             corePrediction(bird = birdSpecies[[index]],
+                             corePrediction(bird = index,
                                             model = modelList[[index]],
                                             predictedName = predictedName[[index]],
                                             successionStaticLayers = stackVectors,
@@ -89,12 +103,14 @@ predictDensities <- function(birdSpecies,
     # Reconvert vectors into rasters
     rm(stackVectors)
     invisible(gc())
-    predictionPerSpecies <- lapply(predictVec, FUN = function(spVec){
-      if (class(spVec) == "numeric"){
-        bird <- substr(attributes(spVec)[["prediction"]], 1, 4)
-        rasName <- paste0("prediction", attributes(spVec)[["prediction"]])
+    predictionPerSpecies <- lapply(seq_along(predictVec), FUN = function(spVecIndex){ #spVecIndex is the index so I can convert to NA in the big vector list for memory 
+      if (class(predictVec[[spVecIndex]]) == "numeric"){
+        bird <- substr(attributes(predictVec[[spVecIndex]])[["prediction"]], 1, 4)
+        rasName <- paste0("prediction", attributes(predictVec[[spVecIndex]])[["prediction"]])
         birdRas <- raster(rasterToMatch) # Using the first as a template. All should be the same.
-        birdRas <- raster::setValues(x = birdRas, values = as.numeric(spVec))
+        birdRas <- raster::setValues(x = birdRas, values = as.numeric(predictVec[[spVecIndex]]))
+        predictVec[[spVecIndex]] <- NA # Remove it, should lower memory usage
+        gc()
 
       # re-Mask study area and/or for uplands
     if (rastersShowingNA){
@@ -110,20 +126,25 @@ predictDensities <- function(birdSpecies,
                                                    destinationPath = pathData, filename2 = NULL)
     }
       raster::writeRaster(predictedMasked, 
-                          filename = predictedName[[bird]], format = "GTiff")
+                          filename = predictedName[[bird]], format = "GTiff", overwrite = TRUE)
+      rm(predictedMasked)
       } else {
-        birdFull <- strsplit(spVec, "Year")
+        birdFull <- strsplit(spVecIndex, "Year")
         bird <- usefun::substrBoth(strng = birdFull[[1]][1], howManyCharacters = 4, fromEnd = TRUE)
       }
+      if (lowMem){
+        return(predictedName[[bird]])
+      } else {
         return(raster(predictedName[[bird]]))
+      }
     })
-    names(predictionPerSpecies) <- birdSpecies      
+    names(predictionPerSpecies) <- whichDontExist      
     rm(predictVec)
     invisible(gc())
   }
   message(crayon::green(paste0("Predictions finalized for ", currentTime, " for ")))
-  print(birdSpecies)
-  names(predictionPerSpecies) <- birdSpecies
+  print(whichDontExist)
+  names(predictionPerSpecies) <- whichDontExist
   return(predictionPerSpecies)
 }
 
