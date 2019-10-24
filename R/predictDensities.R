@@ -44,8 +44,13 @@ predictDensities <- function(birdSpecies,
   if (allPredictionsExist){
     message(crayon::green("All predictions exist. Returning existing predictions"))
     predictionPerSpecies <- lapply(X = birdSpecies, FUN = function(bird){
-      ras <- raster::raster(predictedName[[bird]])
+      if (lowMem){
+        return(predictedName[[bird]])
+      } else {
+        return(raster(predictedName[[bird]]))
+      }
     })
+    whichDontExist <- birdSpecies
   } else {
     # Which rasters we still don't have
     
@@ -59,29 +64,31 @@ predictDensities <- function(birdSpecies,
     }))
     
     whichDontExist <- whichDontExist[!is.na(whichDontExist)]
-    
-  message(crayon::yellow(paste0("Rasters not found for ", length(whichDontExist)," birds: ", paste(whichDontExist, collapse = ", "),". Starting predictions...")))
-    if (nCores == "auto") {
-      nCores <- pemisc::optimalClusterNum(memUsedByEachProcess, maxNumClusters = length(birdSpecies))
-    }
-    if (all(.Platform$OS.type != "windows", isTRUE(useParallel))) {
-      cl <- parallel::makeForkCluster(nCores, outfile = file.path(pathData, "logParallelBirdPrediction")) # Tried, works, too slow
-      # cl <- parallel::makePSOCKcluster(sim$nCores, outfile = file.path(dataPath(sim), "logParallelBirdPrediction")) # Tried, also works, also slow
-      
-      on.exit(try(parallel::stopCluster(cl), silent = TRUE))
-    } else {
-      cl <- NULL
-    }
+    if (!is.null(whichDontExist))
+      message(crayon::yellow(paste0("Rasters not found for ", length(whichDontExist)," birds: ", 
+                                paste(whichDontExist, collapse = ", "),". Starting predictions...")))
+    # if (nCores == "auto") {
+    #   nCores <- pemisc::optimalClusterNum(memUsedByEachProcess, maxNumClusters = length(birdSpecies))
+    # }
+    # if (all(.Platform$OS.type != "windows", isTRUE(useParallel))) {
+    #   cl <- parallel::makeForkCluster(nCores, outfile = file.path(pathData, "logParallelBirdPrediction")) # Tried, works, too slow
+    #   # cl <- parallel::makePSOCKcluster(sim$nCores, outfile = file.path(dataPath(sim), "logParallelBirdPrediction")) # Tried, also works, also slow
+    #   
+    #   on.exit(try(parallel::stopCluster(cl), silent = TRUE))
+    # } else {
+    #   cl <- NULL
+    # }
   
     stackVectors <- data.table(getValues(stkLays))
     
-    if (!is.null(cl)){
-      message(crayon::red(paste0("Paralellizing for ", length(whichDontExist),"species for year ", currentTime,":\n",
+    # if (!is.null(cl)){
+    
+      message(crayon::red(paste0("Paralellizing for ", length(whichDontExist)," species for year ", currentTime,":\n",
                                  paste(whichDontExist, collapse = "\n"),
-                                 "\n\nUsing ", nCores, " cores in year ", currentTime,"\n",
+                                 "\nUsing future package with plan ", paste0(crayon::white(attributes(plan())[["call"]])[2]), 
                                  "\nMessages will be suppressed until done")))
-      predictVec <- clusterApplyLB(whichDontExist,
-                                   cl = cl, function(index) {
+      predictVec <- future_lapply(whichDontExist,
+                                   function(index) {
                                      corePrediction(bird = index,
                                                     model = modelList[[index]],
                                                     predictedName = predictedName[[index]],
@@ -89,17 +96,17 @@ predictDensities <- function(birdSpecies,
                                                     pathData = pathData,
                                                     currentTime = currentTime)
                                    })
-    } else {
-      predictVec <- lapply(whichDontExist,
-                           function(index) {
-                             corePrediction(bird = index,
-                                            model = modelList[[index]],
-                                            predictedName = predictedName[[index]],
-                                            successionStaticLayers = stackVectors,
-                                            pathData = pathData,
-                                            currentTime = currentTime) # The returned prediction is in density! So for abundance need to * 6.25
-                           })
-    }
+    # } else {
+    #   predictVec <- lapply(whichDontExist,
+    #                        function(index) {
+    #                          corePrediction(bird = index,
+    #                                         model = modelList[[index]],
+    #                                         predictedName = predictedName[[index]],
+    #                                         successionStaticLayers = stackVectors,
+    #                                         pathData = pathData,
+    #                                         currentTime = currentTime) # The returned prediction is in density! So for abundance need to * 6.25
+    #                        })
+    # }
     # Reconvert vectors into rasters
     rm(stackVectors)
     invisible(gc())

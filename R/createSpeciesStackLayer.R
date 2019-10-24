@@ -39,7 +39,7 @@ if(useOnlyUplandsForPrediction){
     stop("One or more of your rasters (sim$uplandRaster, sim$forestOnly, sim$rasterToMatch)",
          " is not binary even after converting. Please debug.")
     
-  pixelGroupMap <- postProcess(x = pixelGroupMap, rasterToMatch = forestUplandRTM, destinationPath = tempdir(),
+  pixelGroupMap <- Cache(postProcess, x = pixelGroupMap, rasterToMatch = forestUplandRTM, destinationPath = tempdir(),
                                filename2 = NULL, maskWithRTM = TRUE, useCache = FALSE)
 }
   # Iterate through species and for each species, plot the B in the `pixelGroupMap`

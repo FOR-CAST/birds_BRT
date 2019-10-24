@@ -14,7 +14,9 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "birdsNWT.Rmd"),
-  reqdPkgs = list("googledrive", "data.table", "raster", "gbm", "crayon", "plyr", "dplyr", "tati-micheletti/usefun"),
+  reqdPkgs = list("googledrive", "data.table", "raster", "gbm", 
+                  "crayon", "plyr", "dplyr", "tati-micheletti/usefun",
+                  "future", "future.callr", "future.apply"),
   parameters = rbind(
     defineParameter("scenario", "character", NA, NA, NA, paste0("Are these predictions from a specific scenario?",
                                                                   " If not, leave it as NA")),
@@ -245,8 +247,8 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                                                waterRaster = sim$waterRaster,
                                                                rastersShowingNA = P(sim)$rastersShowingNA,
                                                                scenario = P(sim)$scenario,
-                                                               memUsedByEachProcess = ifelse(P(sim)$version %in% c("5", "6"), 130000, 31000),
-                                                               lowMem = lowMem)
+                                                               memUsedByEachProcess = ifelse(P(sim)$version %in% c("5", "6"), 150000, 31000),
+                                                               lowMem = P(sim)$lowMem)
       print(Sys.time()-t1)
         sim <- scheduleEvent(sim, time(sim) + P(sim)$predictionInterval, "birdsNWT", "predictBirds")
         if (P(sim)$predictLastYear){
