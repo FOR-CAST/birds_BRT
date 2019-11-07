@@ -15,6 +15,7 @@ predictDensities <- function(birdSpecies,
                              scenario,
                              memUsedByEachProcess = 31000,
                              lowMem = FALSE) {
+  
   tryCatch({
     stkLays <- raster::stack(successionLayers, staticLayers)
     namesLays <- names(stkLays)
@@ -30,11 +31,9 @@ predictDensities <- function(birdSpecies,
     stop("crs and or extents don't align. Check you layers have the same crs and projection before this call")
   })
   
-  
   predictedName <- as.list(file.path(pathData, paste0(scenario, "predicted", birdSpecies, "Year", currentTime, ".tif")))
   names(predictedName) <- birdSpecies
   message(crayon::yellow("Checking if predictions exist"))
-  
   
   allPredictionsExist <- all(unlist(lapply(predictedName, FUN = function(yearSpPrediction){
     fileExists <- file.exists(yearSpPrediction)

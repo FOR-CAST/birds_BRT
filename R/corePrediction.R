@@ -7,6 +7,7 @@ corePrediction <- function(bird, model, birdDensityRas,
                            overwritePredictions = FALSE,
                            savePredVectors){
   
+
   message(crayon::yellow(paste0("Predicting for ", bird , ". Prediction for time ", currentTime)))
   if ("glmerMod" %in% class(model)){
     nameStackRas1 <- names(model@frame)[2]
