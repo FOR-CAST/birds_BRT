@@ -8,7 +8,7 @@ defineModule(sim, list(
   authors = c(person("Tati", "Micheletti", email = "tati.micheletti@gmail.com", role = c("aut", "cre")),
               person("Diana", "Stralberg", email = "dstralberg@gmail.com", role = "aut")),
   childModules = character(0),
-  version = list(SpaDES.core = "0.2.4", birdsNWT = "0.0.1"),
+  version = list(SpaDES.core = "0.2.4", birdsNWT = "0.1.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
@@ -48,7 +48,11 @@ defineModule(sim, list(
     defineParameter(name = "overwritePredictions", class = "logical", default = FALSE, min = NA, max = NA, 
                     desc = "Should overwrite bird predictions thta might be available?"),
     defineParameter(name = "lowMem", class = "logical", default = FALSE, min = NA, max = NA, 
-                    desc = "Should the bird predictions return the final rasters (FALSE) or path to these (TRUE) ")
+                    desc = "Should the bird predictions return the final rasters (FALSE) or path to these (TRUE) "),
+    defineParameter(name = "vegetationStatic", class = "logical", default = FALSE, min = NA, max = NA, 
+                    desc = "Should the bird predictions keep vegetation Static through time?"),
+    defineParameter(name = "climateStatic", class = "logical", default = FALSE, min = NA, max = NA, 
+                    desc = "Should the bird predictions keep climate layers Static through time?")
   ),
   inputObjects = bind_rows(
     expectsInput(objectName = "usrEmail", objectClass = "character",
@@ -155,28 +159,34 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
               paste(names(sim$staticLayers), collapse = "\n"))
     },
     gettingData = {
-
       Require("magrittr")
-      
+
+        if (P(sim)$vegetationStatic){
+          timeVegetation <- start(sim)
+          message(crayon::red("vegetationStatic is TRUE. Vegetation layers will be kept Static"))
+        } else {
+          timeVegetation <- time(sim)
+        }
+        
       if (!is.null(sim$cohortData)){
       mod$cohortData <- sim$cohortData
       } else {
       mod$cohortData <- createModObject(data = "cohortData", sim = sim,
-      pathInput = inputPath(sim), currentTime = time(sim))
+      pathInput = inputPath(sim), currentTime = timeVegetation)
       }
       
       if (!is.null(sim$pixelGroupMap)){
         mod$pixelGroupMap <- sim$pixelGroupMap
       } else {
         mod$pixelGroupMap <- createModObject(data = "pixelGroupMap", sim = sim, 
-                                             pathInput = inputPath(sim), currentTime = time(sim))
+                                             pathInput = inputPath(sim), currentTime = timeVegetation)
       }
       
       if (!is.null(sim$simulatedBiomassMap)){
         mod$simulatedBiomassMap <- sim$simulatedBiomassMap
       } else {
         mod$simulatedBiomassMap <- createModObject(data = "simulatedBiomassMap", sim = sim, 
-                                                   pathInput = inputPath(sim), currentTime = time(sim))
+                                                   pathInput = inputPath(sim), currentTime = timeVegetation)
       }
       
       if (any(is.null(mod$pixelGroupMap), is.null(mod$cohortData), is.null(mod$simulatedBiomassMap))) {
@@ -210,25 +220,33 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
         
         sim$successionLayers <- createSpeciesStackLayer(modelList = sim$birdModels,
                                                         urlStaticLayer = sim$urlStaticLayers,
-                                      simulatedBiomassMap = mod$simulatedBiomassMap,
-                                      cohortData = mod$cohortData,
-                                      staticLayers = sim$staticLayers,
-                                      sppEquiv = sim$sppEquiv,
-                                      sppEquivCol = sim$sppEquivCol,
-                                      pixelGroupMap = mod$pixelGroupMap,
-                                      pathData = dataPath(sim),
-                                      forestOnly = sim$forestOnly,
-                                      uplandsRaster = sim$uplandsRaster,
-                                      rasterToMatch = sim$rasterToMatch,
-                                      useOnlyUplandsForPrediction = P(sim)$useOnlyUplandsForPrediction,
-                                      useStaticPredictionsForNonForest = P(sim)$useStaticPredictionsForNonForest)
+                                                        simulatedBiomassMap = mod$simulatedBiomassMap,
+                                                        cohortData = mod$cohortData,
+                                                        staticLayers = sim$staticLayers,
+                                                        sppEquiv = sim$sppEquiv,
+                                                        sppEquivCol = sim$sppEquivCol,
+                                                        pixelGroupMap = mod$pixelGroupMap,
+                                                        pathData = dataPath(sim),
+                                                        forestOnly = sim$forestOnly,
+                                                        uplandsRaster = sim$uplandsRaster,
+                                                        rasterToMatch = sim$rasterToMatch,
+                                                        useOnlyUplandsForPrediction = P(sim)$useOnlyUplandsForPrediction,
+                                                        useStaticPredictionsForNonForest = P(sim)$useStaticPredictionsForNonForest)
       }
-      
       if (P(sim)$version %in% c("5", "6")) {
+        if (P(sim)$climateStatic){
+          timeClimate <- start(sim)
+          message(crayon::red("climateStatic is TRUE. Climate layers will be kept Static"))
+        } else {
+          timeClimate <- time(sim)
+        }
         sim$climateLayersBirds <- usefun::prepareClimateLayers(authEmail = usrEmail,
                                                                pathInputs = inputPath(sim), studyArea = sim$studyArea,
-                                                               rasterToMatch = sim$rasterToMatch, years = time(sim),
+                                                               rasterToMatch = sim$rasterToMatch, years = timeClimate,
                                                                variables = "birdsModel", model = "birds")
+        if (P(sim)$climateStatic)
+          names(sim$climateLayersBirds) <- paste0("year", time(sim))
+        
         sim$successionLayers <- raster::stack(sim$successionLayers, sim$climateLayersBirds[[paste0("year", time(sim))]])
       }
       t1 <- Sys.time()
