@@ -1,4 +1,5 @@
 createSpeciesStackLayer <- function(modelList,
+                                    pixelsWithDataAtInitialization = NULL,
                                     simulatedBiomassMap,
                                     urlStaticLayer,
                                     cohortData, # Should also have age
@@ -46,11 +47,28 @@ if(useOnlyUplandsForPrediction){
   names(speciesNames) <- speciesLayerNames$modelLayer[
     match(speciesLayerNames$speciesName, speciesNames)]
   zeroedMap <- raster(pixelGroupMap)
+  if (!is.null(pixelsWithDataAtInitialization)){
+    # here I need to "fill back up" or 'extend' my cohort data to the pixels that had biomass and don't have anymore
+    # pixelsWithDataAtInitialization
+    zeroPixGroup <- data.table(pixelID = pixelsWithDataAtInitialization)
+    zeroPixGroup$pixThatHadBiomass <- pixelGroupMap[pixelsWithDataAtInitialization]
+    zeroPixGroup <- zeroPixGroup[is.na(pixThatHadBiomass),]
+    pixelGroupMap[zeroPixGroup$pixelID] <- 0 # Do we have any pixelGroup as 0?
+  }
   pixelGroupMapRed <- data.table(pixelGroup = unique(raster::getValues(pixelGroupMap)))
   pixelGroupMapRed <- na.omit(pixelGroupMapRed)
+  if (!is.null(pixelsWithDataAtInitialization)){
+    # here I need to "fill back up" or 'extend' my cohort data to the pixels that had biomass and don't have anymore
+    # pixelsWithDataAtInitialization
+    cohortDataZeroed <- data.table(matrix(0, nrow = length(levels(cohortData$speciesCode)), 
+                                          ncol = NCOL(cohortData)))
+    names(cohortDataZeroed) <- names(cohortData)
+    cohortDataZeroed$speciesCode <- levels(cohortData$speciesCode)
+    cohortData <- rbind(cohortData, cohortDataZeroed)
+  }
   cohortData <- cohortData[pixelGroupMapRed, on = "pixelGroup"]
-  cohortData$pixelGroup[is.na(cohortData$ecoregionGroup)] <- NA
-  cohortData <- na.omit(cohortData)
+  cohortData$pixelGroup[is.na(cohortData$ecoregionGroup)] <- NA # These shouldn't be necessary..
+  cohortData <- na.omit(cohortData) # These shouldn't be necessary..
   
   speciesRasters <- lapply(X = speciesNames, FUN = function(sp){
     subsCohort <- cohortData[speciesCode == sp, ]

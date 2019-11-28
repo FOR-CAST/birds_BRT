@@ -52,7 +52,17 @@ defineModule(sim, list(
     defineParameter(name = "vegetationStatic", class = "logical", default = FALSE, min = NA, max = NA, 
                     desc = "Should the bird predictions keep vegetation Static through time?"),
     defineParameter(name = "climateStatic", class = "logical", default = FALSE, min = NA, max = NA, 
-                    desc = "Should the bird predictions keep climate layers Static through time?")
+                    desc = "Should the bird predictions keep climate layers Static through time?"),
+    defineParameter(name = "RCP", class = "character", default = "85", min = NA, max = NA, 
+                    desc = "Which RCP should be used? Default to 85"),
+    defineParameter(name = "climateModel", class = "character", default = "CCSM4", min = NA, max = NA, 
+                    desc = "Which climate model should be used? Default to CCSM4"),
+    defineParameter(name = "ensemble", class = "character", default = "", min = NA, max = NA, 
+                    desc = "Which ensemble model should be used? Default to ''. CCSM4 doesn't have ensemble, just CanESM2 (r11i1p1)"),
+    defineParameter(name = "climateResolution", class = "character", default = "3ArcMin", min = NA, max = NA, 
+                    desc = "Which DEM resolution was used for generating the climate layers? Default to '3ArcMin'."),
+    defineParameter(name = "climateFilePath", class = "character", default = "https://drive.google.com/open?id=17idhQ_g43vGUQfT-n2gLVvlp0X9vo-R8", min = NA, max = NA, 
+                    desc = "URL to zipped climate file coming from ClimateNA, containing all climate variables for all years of simulation")
   ),
   inputObjects = bind_rows(
     expectsInput(objectName = "usrEmail", objectClass = "character",
@@ -219,6 +229,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
           stop("useTestSpeciesLayers is FALSE, but apparently no vegetation simulation was run. Check your inputs folder or simulation module.")
         
         sim$successionLayers <- createSpeciesStackLayer(modelList = sim$birdModels,
+                                                        pixelsWithDataAtInitialization = sim$pixelsWithDataAtInitialization,
                                                         urlStaticLayer = sim$urlStaticLayers,
                                                         simulatedBiomassMap = mod$simulatedBiomassMap,
                                                         cohortData = mod$cohortData,
@@ -240,9 +251,15 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
         } else {
           timeClimate <- time(sim)
         }
+        
         sim$climateLayersBirds <- usefun::prepareClimateLayers(authEmail = usrEmail,
                                                                pathInputs = inputPath(sim), studyArea = sim$studyArea,
                                                                rasterToMatch = sim$rasterToMatch, years = timeClimate,
+                                                               RCP = P(sim)$RCP,
+                                                               climateModel = P(sim)$climateModel,
+                                                               ensemble = P(sim)$ensemble, 
+                                                               climateFilePath = P(sim)$climateFilePath,
+                                                               fileResolution = P(sim)$climateResolution)
                                                                variables = "birdsModel", model = "birds")
         if (P(sim)$climateStatic)
           names(sim$climateLayersBirds) <- paste0("year", time(sim))
@@ -403,6 +420,11 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
   }
 
   sim$unavailableModels <- NULL # For potentially missing modules in comparison to birds list
+  
+  if (!suppliedElsewhere("pixelsWithDataAtInitialization", sim)){
+    sim$pixelsWithDataAtInitialization <- NULL
+    message(crayon::red("pixelsWithDataAtInitialization was not provided. Predictions will be missing pixels where total biomass is 0, these will be NA"))
+  }
   
   return(invisible(sim))
 }
