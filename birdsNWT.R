@@ -111,6 +111,9 @@ defineModule(sim, list(
                  desc = "List of raster stacks of climate variables for birds such as: AHM, bFFP, CMD, DD_0, DD_18, DD18, DD5, eFFP,
                         EMT, EXT, FFP, MAP, MAT, MCMT, MSP, MWMT, NFFD,
                         PAS, PPT_sm, PPT_wt, SHM, Tave_sm, Tave_wt, TD", 
+                 sourceURL = NA),
+    expectsInput(objectName = "climateDataFolder", objectClass = "character",
+                 desc = "Folder where to look for the climate data. If not provided, set as inputPath(sim)", 
                  sourceURL = NA)
   ),
   outputObjects = bind_rows(
@@ -253,13 +256,14 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
         }
         
         sim$climateLayersBirds <- usefun::prepareClimateLayers(authEmail = usrEmail,
-                                                               pathInputs = inputPath(sim), studyArea = sim$studyArea,
+                                                               pathInputs = sim$climateDataFolder, 
+                                                               studyArea = sim$studyArea,
                                                                rasterToMatch = sim$rasterToMatch, years = timeClimate,
                                                                RCP = P(sim)$RCP,
                                                                climateModel = P(sim)$climateModel,
                                                                ensemble = P(sim)$ensemble, 
                                                                climateFilePath = P(sim)$climateFilePath,
-                                                               fileResolution = P(sim)$climateResolution)
+                                                               fileResolution = P(sim)$climateResolution,
                                                                variables = "birdsModel", model = "birds")
         if (P(sim)$climateStatic)
           names(sim$climateLayersBirds) <- paste0("year", time(sim))
@@ -424,6 +428,11 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
   if (!suppliedElsewhere("pixelsWithDataAtInitialization", sim)){
     sim$pixelsWithDataAtInitialization <- NULL
     message(crayon::red("pixelsWithDataAtInitialization was not provided. Predictions will be missing pixels where total biomass is 0, these will be NA"))
+  }
+  
+  if (!suppliedElsewhere("climateDataFolder", sim)){
+    sim$climateDataFolder <- inputPath(sim)
+    message(crayon::red("climateDataFolder was not provided. Using inputPath"))
   }
   
   return(invisible(sim))
