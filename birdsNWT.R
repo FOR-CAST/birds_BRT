@@ -201,7 +201,6 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
         mod$simulatedBiomassMap <- createModObject(data = "simulatedBiomassMap", sim = sim, 
                                                    pathInput = inputPath(sim), currentTime = timeVegetation)
       }
-      
       if (any(is.null(mod$pixelGroupMap), is.null(mod$cohortData), is.null(mod$simulatedBiomassMap))) {
         params(sim)$useTestSpeciesLayers <- TRUE
       }

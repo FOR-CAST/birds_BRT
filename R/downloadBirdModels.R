@@ -1,5 +1,6 @@
 downloadBirdModels <- function(folderUrl, version, birdsList, modelsPath){
   reproducible::Require("googledrive")
+  reproducible::Require("usefun")
   filesToDownload <- Cache(googledrive::drive_ls, path = as_id(folderUrl), pattern = paste0("brt", version, ".R"))
   modelsForBirdList <- filesToDownload$name[grepl(pattern = paste(birdsList, collapse = "|"), x = filesToDownload$name)]
   downloadedModels <- lapply(X = modelsForBirdList, FUN = function(modelFile){
@@ -9,4 +10,6 @@ downloadBirdModels <- function(folderUrl, version, birdsList, modelsPath){
     }
     return(get(load(file.path(modelsPath, modelFile))))
   })
+  names(downloadedModels) <- usefun::substrBoth(strng = modelsForBirdList, howManyCharacters = 4, fromEnd = FALSE)
+  return(downloadedModels)
 }
