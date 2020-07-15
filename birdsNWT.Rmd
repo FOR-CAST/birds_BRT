@@ -44,7 +44,6 @@ devtools::install_github("PredictiveEcology/LandR@development")  # Updates SpaDE
 
 ```{r module_usage}
 
-setwd("/mnt/data/Micheletti/NWT/")
 # Load SpaDES
 library("SpaDES")
 library("raster")
@@ -53,7 +52,7 @@ options("spades.recoveryMode" = 1)
 
 # Source functions in R folder
 invisible(sapply(X = list.files(file.path(getwd(), "R"), full.names = TRUE), FUN = source))
-invisible(sapply(X = list.files(file.path("/mnt/data/Micheletti/NWT/modules/birdsNWT/R/"), full.names = TRUE), FUN = source))
+invisible(sapply(X = list.files(file.path("~/modules/birdsNWT/R/"), full.names = TRUE), FUN = source))
 invisible(sapply(X = list.files(dirname(getwd()), "functions", full.names = TRUE), FUN = source)) 
 
 setPaths(modulePath = file.path(getwd(), "modules"), cachePath = file.path(getwd(), "cache"),

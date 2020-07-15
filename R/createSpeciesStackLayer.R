@@ -32,12 +32,12 @@ reproducible::Require("raster")
   # lower biomass sites
 if(useOnlyUplandsForPrediction){
   if (!all(unlist(lapply(list(uplandsRaster, forestOnly, rasterToMatch), FUN = is, class2 = "RasterLayer"))))
-    stop("At least one of your layers (sim$uplandRaster, sim$forestOnly, sim$rasterToMatch) is NULL. Please debug.")
+    stop("At least one of your layers (sim$uplandsRaster, sim$forestOnly, sim$rasterToMatch) is NULL. Please debug.")
   forestUplandRTM <- uplandsRaster * forestOnly * rasterToMatch
   if (any(!names(table(forestUplandRTM[], useNA = "ifany")) %in% c("0", "1", NA)))
     forestUplandRTM[forestUplandRTM > 0 | forestUplandRTM < 0] <- 1
   if (any(!names(table(forestUplandRTM[], useNA = "ifany")) %in% c("0", "1", NA)))
-    stop("One or more of your rasters (sim$uplandRaster, sim$forestOnly, sim$rasterToMatch)",
+    stop("One or more of your rasters (sim$uplandsRaster, sim$forestOnly, sim$rasterToMatch)",
          " is not binary even after converting. Please debug.")
     
   pixelGroupMap <- Cache(postProcess, x = pixelGroupMap, rasterToMatch = forestUplandRTM, destinationPath = tempdir(),
@@ -157,7 +157,7 @@ if(useOnlyUplandsForPrediction){
   # IS THIS THE CORRECT BEHAVIOR? 
   # ZERO? OR SHOULD BE MEAN?
   layersAvailable <- c(names(staticLayers), names(speciesStack))
-  predictors <- usefun::grepMulti(x = predictors, patterns = "Species")
+  predictors <- usefulFuns::grepMulti(x = predictors, patterns = "Species")
   missingLayersNames <- setdiff(predictors, layersAvailable)
   if (length(missingLayersNames) ==0) message(crayon::green("No layers missing, proceeding to prediction."))
   if (length(missingLayersNames) !=0){

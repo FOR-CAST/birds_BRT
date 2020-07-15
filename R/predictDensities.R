@@ -136,7 +136,7 @@ predictDensities <- function(birdSpecies,
       rm(predictedMasked)
       } else {
         birdFull <- strsplit(spVecIndex, "Year")
-        bird <- usefun::substrBoth(strng = birdFull[[1]][1], howManyCharacters = 4, fromEnd = TRUE)
+        bird <- usefulFuns::substrBoth(strng = birdFull[[1]][1], howManyCharacters = 4, fromEnd = TRUE)
       }
       if (lowMem){
         return(predictedName[[bird]])

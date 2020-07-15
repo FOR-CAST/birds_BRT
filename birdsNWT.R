@@ -15,7 +15,7 @@ defineModule(sim, list(
   citation = list("citation.bib"),
   documentation = list("README.txt", "birdsNWT.Rmd"),
   reqdPkgs = list("googledrive", "data.table", "raster", "gbm", 
-                  "crayon", "plyr", "dplyr", "tati-micheletti/usefun",
+                  "crayon", "plyr", "dplyr", "tati-micheletti/usefulFuns",
                   "future", "future.callr", "future.apply"),
   parameters = rbind(
     defineParameter("scenario", "character", NA, NA, NA, paste0("Are these predictions from a specific scenario?",
@@ -30,7 +30,7 @@ defineModule(sim, list(
                                                                                         "being masked to uplands or not")),
     defineParameter("useOnlyUplandsForPrediction", "logical", TRUE, NA, NA, paste0("Should the bird layers be masked to forest uplands only? masks",
                                                                                    " pixelGroupMap with uplands as quality of DUCKS layer is better",
-                                                                                   " than LCC05 to ID the wetlands. We currently have succession ",
+                                                                                   " than rstLCC to ID the wetlands. We currently have succession ",
                                                                                    "happening in some wetlands because of the low quality of LCC05.",
                                                                                    " This should not be happening. But as the layer is proprietary, ",
                                                                                    "we can't use it in LandR.")),
@@ -253,8 +253,8 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
         } else {
           timeClimate <- time(sim)
         }
-        
-        sim$climateLayersBirds <- usefun::prepareClimateLayers(authEmail = usrEmail,
+
+        sim$climateLayersBirds <- usefulFuns::prepareClimateLayers(authEmail = usrEmail,
                                                                pathInputs = sim$climateDataFolder, 
                                                                studyArea = sim$studyArea,
                                                                rasterToMatch = sim$rasterToMatch, years = timeClimate,
@@ -266,8 +266,26 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                                                variables = "birdsModel", model = "birds")
         if (P(sim)$climateStatic)
           names(sim$climateLayersBirds) <- paste0("year", time(sim))
-        
-        sim$successionLayers <- raster::stack(sim$successionLayers, sim$climateLayersBirds[[paste0("year", time(sim))]])
+        tryCatch({ 
+          #TODO THIS NEEDS TO BE IMPLEMENTED INSIDE THE  prepareClimateLayers function [ FIX ]
+          sim$successionLayers <- raster::stack(sim$successionLayers, sim$climateLayersBirds[[paste0("year", time(sim))]])
+        }, error = function(e){
+          message(red(paste0("sim$successionLayers and sim$climateLayersBirds do not align for year ", time(sim),
+                             ". Trying a postProcessing...")))
+          climateLayersBirds <- raster::stack(lapply(names(sim$climateLayersBirds[[paste0("year", time(sim))]]), function(lay){
+            print(paste0("Layer: ", lay))
+            ras <- sim$climateLayersBirds[[paste0("year", time(sim))]][[lay]]
+            ras <- postProcess(x = ras, 
+                               destinationPath = sim$climateDataFolder,
+                               rasterToMatch = sim$rasterToMatch, 
+                               filename2 = NULL)
+            return(ras)
+          }))
+          sim$climateLayersBirds[[paste0("year", time(sim))]] <- climateLayersBirds
+          sim$successionLayers <- raster::stack(sim$successionLayers, sim$climateLayersBirds[[paste0("year", time(sim))]])
+          message(green(paste0("postProcessing was successful!")))
+        })
+
       }
       t1 <- Sys.time()
       sim$birdPrediction[[paste0("Year", time(sim))]] <- predictDensities(birdSpecies = sim$birdsList,
@@ -330,7 +348,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       birdsAvailable <- googledrive::drive_ls(
         path = as_id(sim$urlModels), 
         pattern = paste0("brt", P(sim)$version, ".R"))
-      sim$birdsList <- usefun::substrBoth(strng = birdsAvailable[["name"]], howManyCharacters = 4, fromEnd = FALSE)
+      sim$birdsList <- usefulFuns::substrBoth(strng = birdsAvailable[["name"]], howManyCharacters = 4, fromEnd = FALSE)
       # sim$birdsList <- sim$birdsList[-which(grepl(pattern = "CONW", x = sim$birdsList))] # CONW Model has some sort of problem in V3; Check V6!
       if (all(is.null(sim$birdsList)))
         stop("There are no bird models in the google drive link folder. 
@@ -356,8 +374,8 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                               omitArgs = c("destinationPath", "filename2"))
   }
   
-  if (!suppliedElsewhere("LCC05", sim)){
-    sim$LCC05 <- LandR::prepInputsLCC(destinationPath = dataPath(sim),
+  if (!suppliedElsewhere("rstLCC", sim)){
+    sim$rstLCC <- LandR::prepInputsLCC(destinationPath = dataPath(sim),
                                       studyArea = sim$studyArea,
                                       rasterToMatch = sim$rasterToMatch)
   }
@@ -366,7 +384,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
     
     forestClasses <- c(1:15, 34:35)
     sim$forestOnly <- sim$rasterToMatch
-    sim$forestOnly[!sim$LCC05[] %in% forestClasses] <- NA
+    sim$forestOnly[!sim$rstLCC[] %in% forestClasses] <- NA
     
   }
   
@@ -395,7 +413,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
     wetlandRaster <- Cache(prepInputsLayers_DUCKS, destinationPath = dataPath(sim), 
                            studyArea = sim$studyArea, 
                            userTags = "objectName:wetlandRaster")
-    sim$waterRaster <- Cache(usefun::classifyWetlands, LCC = P(sim)$baseLayer,
+    sim$waterRaster <- Cache(usefulFuns::classifyWetlands, LCC = P(sim)$baseLayer,
                              wetLayerInput = wetlandRaster,
                              pathData = dataPath(sim),
                              studyArea = sim$studyArea,
