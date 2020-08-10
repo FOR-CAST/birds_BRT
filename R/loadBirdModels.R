@@ -20,9 +20,13 @@ if (quickLoad){
     }))
     downloadedModels <- lapply(X = bdAvailable, FUN = function(modelFile){
       modelFile <- basename(modelFile)
+      done <- which(basename(bdAvailable) == modelFile)
+      percentDone <- round(((done-1)/length(bdAvailable))*100, 2)
+      message(paste0("Loading model: ", crayon::magenta(modelFile), ". ", percentDone, "% completed."))
       return(get(load(file.path(modelsPath, modelFile))))
     })
-    names(downloadedModels) <- usefulFuns::substrBoth(strng = reproducible::basename2(bdAvailable), howManyCharacters = 4, fromEnd = FALSE)
+    names(downloadedModels) <- usefulFuns::substrBoth(strng = reproducible::basename2(bdAvailable), 
+                                                      howManyCharacters = 4, fromEnd = FALSE)
   }
 } else {
   downloadedModels <- downloadBirdModels(folderUrl = folderUrl, version = version, 
