@@ -13,7 +13,7 @@ predictDensities <- function(birdSpecies,
                              waterRaster,
                              rastersShowingNA,
                              scenario,
-                             memUsedByEachProcess = 31000,
+                             # memUsedByEachProcess = 31000,
                              lowMem = FALSE) {
   
   tryCatch({
