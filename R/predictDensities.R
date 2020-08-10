@@ -66,50 +66,132 @@ predictDensities <- function(birdSpecies,
     if (!is.null(whichDontExist))
       message(crayon::yellow(paste0("Rasters not found for ", length(whichDontExist)," birds: ", 
                                 paste(whichDontExist, collapse = ", "),". Starting predictions...")))
-    # if (nCores == "auto") {
-    #   nCores <- pemisc::optimalClusterNum(memUsedByEachProcess, maxNumClusters = length(birdSpecies))
-    # }
-    # if (all(.Platform$OS.type != "windows", isTRUE(useParallel))) {
-    #   cl <- parallel::makeForkCluster(nCores, outfile = file.path(pathData, "logParallelBirdPrediction")) # Tried, works, too slow
-    #   # cl <- parallel::makePSOCKcluster(sim$nCores, outfile = file.path(dataPath(sim), "logParallelBirdPrediction")) # Tried, also works, also slow
-    #   
-    #   on.exit(try(parallel::stopCluster(cl), silent = TRUE))
-    # } else {
-    #   cl <- NULL
-    # }
-  
+    
     stackVectors <- data.table(getValues(stkLays))
     
-    # if (!is.null(cl)){
+    # localCores <- FALSE
+      if (any(nCores == "auto", all(is.numeric(nCores), nCores > 1))) {
+        # if nCores is numeric or auto: local parallel
+        # if (nCores == "auto") { # NOT FUNCTIONAL --> Not passing it to the future call
+        #   nCores <- pemisc::optimalClusterNum(memUsedByEachProcess,
+        #                                       maxNumClusters = length(birdSpecies))
+        # }
+        useParallel <- TRUE
+        localParallel <- TRUE
+        # nCores <- rep("localhost", nCores)
+      } else { # If nCores == 1, no parallel
+        if (all(is.numeric(nCores), nCores == 1)){
+          useParallel <- FALSE 
+          localParallel <- FALSE
+        } else { # If nCores specifies the workers: parallel across machines
+          useParallel <- TRUE
+          localParallel <- FALSE
+        }
+      }  
     
-      message(crayon::red(paste0("Paralellizing for ", length(whichDontExist)," species for year ", currentTime,":\n",
-                                 paste(whichDontExist, collapse = "\n"),
-                                 "\nUsing future package with plan ", paste0(crayon::white(attributes(plan())[["call"]])[2]), 
-                                 "\nMessages will be suppressed until done")))
-      predictVec <- future_lapply(whichDontExist,
-                                   function(index) {
-                                     corePrediction(bird = index,
-                                                    model = modelList[[index]],
-                                                    predictedName = predictedName[[index]],
-                                                    successionStaticLayers = stackVectors,
-                                                    pathData = pathData,
-                                                    currentTime = currentTime)
-                                   })
-    # } else {
-    #   predictVec <- lapply(whichDontExist,
-    #                        function(index) {
-    #                          corePrediction(bird = index,
-    #                                         model = modelList[[index]],
-    #                                         predictedName = predictedName[[index]],
-    #                                         successionStaticLayers = stackVectors,
-    #                                         pathData = pathData,
-    #                                         currentTime = currentTime) # The returned prediction is in density! So for abundance need to * 6.25
-    #                        })
-    # }
+    if (useParallel){
+      if (localParallel){
+        plan(multiprocess)
+        message(crayon::red(paste0("Paralellizing for ", length(whichDontExist)," species for year ", currentTime,": ",
+                                   crayon::white(paste(whichDontExist, collapse = "; ")),
+                                   " Using future package with plan ",
+                                   paste0(crayon::white(attributes(plan())[["call"]])[2]),
+                                   " Messages will be suppressed until done")))
+
+        t1 <- Sys.time()
+        predictVec <- future_lapply(whichDontExist,
+                                    function(index) {
+                                      corePrediction(bird = index,
+                                                     model = modelList[[index]],
+                                                     predictedName = predictedName[[index]],
+                                                     pathData = pathData,
+                                                     currentTime = currentTime,
+                                                     successionStaticLayers = stackVectors)
+                                    })
+        t2 <- Sys.time()
+        print(t2-t1)
+        
+      } else {
+        # NOT WORKING!
+        #       # For across machines, we need reverse tunnels
+        revtunnel <- if (all(nCores == "localhost")) FALSE else TRUE
+        
+        # Making a 1 core per machine cluster to pass the libraries/objects we need
+        st <- system.time(cl <- future::makeClusterPSOCK(unique(nCores), 
+                                                         revtunnel = revtunnel))
+        message("Starting ", paste(paste(names(table(nCores))), 
+                                   "x", table(nCores), collapse = ", "), " clusters")
+        logPath <- pathData
+        logPath <- file.path(logPath, paste0("birdPrediction_log", 
+                                             Sys.getpid()))
+        message(crayon::blurred(paste0("Starting parallel prediction for ", 
+                                       "boreal birds. Log: ", logPath)))
+        
+        clusterExport(cl, list("logPath"), envir = environment())
+        parallel::clusterEvalQ(cl, {
+          reproducible::checkPath(dirname(logPath), create = TRUE)
+          print(paste0(logPath, " created in ", Sys.getpid()))
+        })
+        stopCluster(cl)
+        
+        # ~~~~~~~~~~~~~~~ Passing the objects and loading libraries
+        browser()
+        st <- system.time(cl <- future::makeClusterPSOCK(workers = nCores,
+                                                         revtunnel = revtunnel,
+                                                         outfile = logPath))
+        
+        on.exit(stopCluster(cl))
+        message("it took ", round(st[3], 2), "s to start ", 
+                paste(paste(names(table(nCores))), "x", table(nCores), collapse = ", "), 
+                " threads")
+        
+        objsNeeded <- list("pathData",
+                           "currentTime",
+                           "predictedName") # "stackVectors", "modelList"
+        
+        clusterExport(cl, objsNeeded, envir = environment())
+        
+        parallel::clusterEvalQ(cl, {
+          for (i in c("gbm", 
+                      "crayon"
+          ))
+            library(i, character.only = TRUE)
+          print(paste0("Libraries loaded in PID: ", 
+                       Sys.getpid()))
+        })
+        
+        # ~~~~~~~~~~~~~~~~~ Starting predictions
+        plan(cluster, workers = nCores) # Doesn't work!!
+        
+        # TEST
+        fun <- function(x){
+          paste0("This is cluster ", Sys.getpid(), ". X is ", x)
+          return(x^2)
+        }
+
+        ret <- future_lapply(X = 1:90, FUN = fun)
+
+      }
+    } else {
+      t1 <- Sys.time()
+      predictVec <- lapply(whichDontExist,
+                           function(index) {
+                             corePrediction(bird = index,
+                                            model = modelList[[index]],
+                                            predictedName = predictedName[[index]],
+                                            successionStaticLayers = stackVectors,
+                                            pathData = pathData,
+                                            currentTime = currentTime) 
+                             # The returned prediction is in density! So for abundance need to * 6.25
+                           })
+      t2 <- Sys.time()
+      print(t2-t1)
+    }
     # Reconvert vectors into rasters
     rm(stackVectors)
     invisible(gc())
-    predictionPerSpecies <- lapply(seq_along(predictVec), FUN = function(spVecIndex){ #spVecIndex is the index so I can convert to NA in the big vector list for memory 
+    predictionPerSpecies <- lapply(seq_along(predictVec), FUN = function(spVecIndex){ 
+      #spVecIndex is the index so I can convert to NA in the big vector list for memory 
       if (class(predictVec[[spVecIndex]]) == "numeric"){
         bird <- substr(attributes(predictVec[[spVecIndex]])[["prediction"]], 1, 4)
         rasName <- paste0("prediction", attributes(predictVec[[spVecIndex]])[["prediction"]])
@@ -148,8 +230,8 @@ predictDensities <- function(birdSpecies,
     rm(predictVec)
     invisible(gc())
   }
-  message(crayon::green(paste0("Predictions finalized for ", currentTime, " for ")))
-  print(whichDontExist)
+  message(crayon::green(paste0("Predictions finalized for ", currentTime, " for ", 
+                               paste(whichDontExist, collapse = "; "))))
   names(predictionPerSpecies) <- whichDontExist
   return(predictionPerSpecies)
 }
