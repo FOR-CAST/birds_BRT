@@ -5,7 +5,7 @@ corePrediction <- function(bird, model, birdDensityRas,
                            currentTime,
                            pathData,
                            overwritePredictions = FALSE,
-                           savePredVectors){
+                           savePredVectors = TRUE){
   
 
   message(crayon::yellow(paste0("Predicting for ", bird , ". Prediction for time ", currentTime)))
@@ -21,7 +21,8 @@ corePrediction <- function(bird, model, birdDensityRas,
         if (isTRUE(overwritePredictions)||!file.exists(predictedName)){
           message(crayon::yellow(paste0(" Starting prediction raster for ", bird, ". This might take some time... [", Sys.time(),"]")))
           startTime <- Sys.time()
-          predicted <- gbm::predict.gbm(object = model, newdata = successionStaticLayers,
+          predicted <- gbm::predict.gbm(object = model, 
+                                        newdata = successionStaticLayers,
                                         type = "response",
                                         n.trees = model$n.trees)
           attr(predicted, "prediction") <- paste0(bird, currentTime)
@@ -39,7 +40,8 @@ corePrediction <- function(bird, model, birdDensityRas,
   predictedNameVec <- paste0(predictedName, "VEC.rds")
   if (isTRUE(overwritePredictions)||!file.exists(predictedName)||!file.exists(predictedNameVec)){
     birdDensityRas <- log(birdDensityRas) # log the value of densities so it is the same of the original model
-    birdDensityRas[birdDensityRas < -0.99] <- -1 # Why did I do this? Maybe because we were not supposed to have values smaller than -0.99?
+    birdDensityRas[birdDensityRas < -0.99] <- -1 
+    # Why did I do this? Maybe because we were not supposed to have values smaller than -0.99?
     vecDF <- data.frame(disturbanceRas, birdDensityRas)
     colnames(vecDF) <- c(nameStackRas1, nameStackRas2)
     predicted <- suppressWarnings(fitModel(inRas = vecDF, 
@@ -47,7 +49,7 @@ corePrediction <- function(bird, model, birdDensityRas,
                                            x = bird, 
                                            tileYear = currentTime))
     if (savePredVectors){
-      saveRDS(object = predicted, file = predictedNameVec)
+      qs::qsave(x = predicted, file = predictedNameVec)
       predicted <- predictedNameVec
     }
   } else {
