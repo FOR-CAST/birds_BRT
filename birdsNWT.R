@@ -5,8 +5,10 @@ defineModule(sim, list(
                        " for the NWT, as well as static layers. Dynamic layers needed ", 
                        "for prediction come from LandR_Biomass"),
   keywords = c("NWT", "birds"),
-  authors = c(person("Tati", "Micheletti", email = "tati.micheletti@gmail.com", role = c("aut", "cre")),
-              person("Diana", "Stralberg", email = "dstralberg@gmail.com", role = "aut")),
+  authors = c(person("Tati", "Micheletti", email = "tati.micheletti@gmail.com", 
+                     role = c("aut", "cre")),
+              person("Diana", "Stralberg", email = "dstralberg@gmail.com", 
+                     role = "aut")),
   childModules = character(0),
   version = list(SpaDES.core = "0.2.4", birdsNWT = "0.1.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
@@ -14,55 +16,102 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "birdsNWT.Rmd"),
-  reqdPkgs = list("googledrive", "data.table", "raster", "gbm", 
+  reqdPkgs = list("googledrive", "magrittr", "data.table", "raster", "gbm", 
                   "crayon", "plyr", "dplyr", "tati-micheletti/usefulFuns",
                   "future", "future.callr", "future.apply"),
   parameters = rbind(
-    defineParameter("scenario", "character", NA, NA, NA, paste0("Are these predictions from a specific scenario?",
-                                                                  " If not, leave it as NA")),
-    defineParameter("rastersShowingNA", "logical", FALSE, NA, NA, paste0("Should the raster present NA where wetlands are?",
-                                                                       " This is because LandR doesn't predict for wetlands")),
-    defineParameter("predictLastYear", "logical", TRUE, NA, NA, paste0("Should it schedule events for the last year",
-                                                                       " of simulation if this is not a multiple of interval?")),
-    defineParameter("useStaticPredictionsForNonForest", "logical", TRUE, NA, NA, paste0("If TRUE, it will use the original KNN data to fill up the NA's",
-                                                                                        " back after if we don't want to leave NA pixels in the ",
-                                                                                        "predictions, independently of having the pixelGroupMap ",
-                                                                                        "being masked to uplands or not")),
-    defineParameter("useOnlyUplandsForPrediction", "logical", TRUE, NA, NA, paste0("Should the bird layers be masked to forest uplands only? masks",
-                                                                                   " pixelGroupMap with uplands as quality of DUCKS layer is better",
-                                                                                   " than rstLCC to ID the wetlands. We currently have succession ",
-                                                                                   "happening in some wetlands because of the low quality of LCC05.",
-                                                                                   " This should not be happening. But as the layer is proprietary, ",
-                                                                                   "we can't use it in LandR.")),
-    defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching?"),
-    defineParameter("version", "character", "6", NA, NA, "Number of the bird module version to be used"),
-    defineParameter("useParallel", "logical", FALSE, NA, NA, "Should bird prediction be parallelized?"),
-    defineParameter("useTestSpeciesLayers", "logical", TRUE, NA, NA, "Use testing layers if forest succesion is not available?"),
-    defineParameter("predictionInterval", "numeric", 10, NA, NA, "Time between predictions"),
-    defineParameter("nCores", "character|numeric", "auto", NA, NA, paste0("If parallelizing, how many cores to use?",
-                                                                          " Use 'auto' (90% of available), or numeric")),
-    defineParameter(name = "baseLayer", class = "numeric", default = 2005, min = NA, max = NA, 
-                    desc = "Which layer should be used? LCC05 or LCC10?"),
-    defineParameter(name = "quickLoad", class = "logical", default = FALSE, min = NA, max = NA, 
-                    desc = "Quickly load models?"),
-    defineParameter(name = "overwritePredictions", class = "logical", default = FALSE, min = NA, max = NA, 
-                    desc = "Should overwrite bird predictions thta might be available?"),
-    defineParameter(name = "lowMem", class = "logical", default = FALSE, min = NA, max = NA, 
-                    desc = "Should the bird predictions return the final rasters (FALSE) or path to these (TRUE) "),
-    defineParameter(name = "vegetationStatic", class = "logical", default = FALSE, min = NA, max = NA, 
-                    desc = "Should the bird predictions keep vegetation Static through time?"),
-    defineParameter(name = "climateStatic", class = "logical", default = FALSE, min = NA, max = NA, 
-                    desc = "Should the bird predictions keep climate layers Static through time?"),
-    defineParameter(name = "RCP", class = "character", default = "85", min = NA, max = NA, 
-                    desc = "Which RCP should be used? Default to 85"),
-    defineParameter(name = "climateModel", class = "character", default = "CCSM4", min = NA, max = NA, 
-                    desc = "Which climate model should be used? Default to CCSM4"),
-    defineParameter(name = "ensemble", class = "character", default = "", min = NA, max = NA, 
-                    desc = "Which ensemble model should be used? Default to ''. CCSM4 doesn't have ensemble, just CanESM2 (r11i1p1)"),
-    defineParameter(name = "climateResolution", class = "character", default = "3ArcMin", min = NA, max = NA, 
-                    desc = "Which DEM resolution was used for generating the climate layers? Default to '3ArcMin'."),
-    defineParameter(name = "climateFilePath", class = "character", default = "https://drive.google.com/open?id=17idhQ_g43vGUQfT-n2gLVvlp0X9vo-R8", min = NA, max = NA, 
-                    desc = "URL to zipped climate file coming from ClimateNA, containing all climate variables for all years of simulation")
+    defineParameter("scenario", "character", NA, NA, NA, 
+                    paste0("Are these predictions from a specific scenario?",
+                           " If not, leave it as NA")),
+    defineParameter("rastersShowingNA", "logical", FALSE, NA, NA, 
+                    paste0(
+                      "Should the raster present NA where wetlands are?",
+                      " This is because LandR doesn't predict for wetlands"
+                    )), 
+    defineParameter("predictLastYear", "logical", TRUE, NA, NA, 
+                    paste0(
+                      "Should it schedule events for the last year",
+                      " of simulation if this is not a multiple of interval?"
+                    )),
+    defineParameter("useStaticPredictionsForNonForest", "logical", TRUE, NA, NA, 
+                    paste0(
+                      "If TRUE, it will use the original KNN data to fill up the NA's",
+                      " back after if we don't want to leave NA pixels in the ",
+                      "predictions, independently of having the pixelGroupMap ",
+                      "being masked to uplands or not"
+                    )),
+    defineParameter("useOnlyUplandsForPrediction", "logical", TRUE, NA, NA, 
+                    paste0(
+                      "Should the bird layers be masked to forest uplands only? masks",
+                      " pixelGroupMap with uplands as quality of DUCKS layer is better",
+                      " than rstLCC to ID the wetlands. We currently have succession ",
+                      "happening in some wetlands because of the low quality of LCC05.",
+                      " This should not be happening. But as the layer is proprietary, ",
+                      "we can't use it in LandR."
+                    )), 
+    defineParameter(".useCache", "logical", FALSE, NA, NA, 
+                    paste0("Should this entire module be run with caching?")),
+    defineParameter("version", "character", "6", NA, NA, 
+                    paste0("Number of the bird module version to be used")),
+    defineParameter("useParallel", "logical", FALSE, NA, NA, 
+                    paste0("Should bird prediction be parallelized?")),
+    defineParameter("useTestSpeciesLayers", "logical", TRUE, NA, NA, 
+                    paste0("Use testing layers if forest succesion is not available?")),
+    defineParameter("predictionInterval", "numeric", 10, NA, NA, 
+                    paste0("Time between predictions")),
+    defineParameter("nCores", "character|numeric", "auto", NA, NA, 
+                    paste0("If parallelizing, how many cores to use?",
+                           " Use 'auto' (90% of available), or numeric")),
+    defineParameter(name = "baseLayer", class = "numeric", 
+                    default = 2005, 
+                    min = NA, max = NA, 
+                    desc = paste0("Which layer should be used? LCC05 or LCC10?")),
+    defineParameter(name = "quickLoad", class = "logical", 
+                    default = FALSE, 
+                    min = NA, max = NA, 
+                    desc = paste0("Quickly load models?")),
+    defineParameter(name = "overwritePredictions", class = "logical", 
+                    default = FALSE, 
+                    min = NA, max = NA, 
+                    desc = paste0("Should overwrite bird predictions thta might be available?")),
+    defineParameter(name = "lowMem", class = "logical", 
+                    default = FALSE, 
+                    min = NA, max = NA, 
+                    desc = paste0("Should the bird predictions return the final ",
+                                  "rasters (FALSE) or path to these (TRUE) ")),
+    defineParameter(name = "vegetationStatic", class = "logical", 
+                    default = FALSE, 
+                    min = NA, max = NA, 
+                    desc = paste0("Should the bird predictions keep vegetation ",
+                                  "Static through time?")),
+    defineParameter(name = "climateStatic", class = "logical", 
+                    default = FALSE, 
+                    min = NA, max = NA, 
+                    desc = paste0("Should the bird predictions keep climate layers ",
+                                  "Static through time?")),
+    defineParameter(name = "RCP", class = "character", 
+                    default = "85", 
+                    min = NA, max = NA, 
+                    desc = paste0("Which RCP should be used? Default to 85")),
+    defineParameter(name = "climateModel", class = "character", 
+                    default = "CCSM4", 
+                    min = NA, max = NA, 
+                    desc = paste0("Which climate model should be used? Default to CCSM4")),
+    defineParameter(name = "ensemble", class = "character", 
+                    default = "", 
+                    min = NA, max = NA, 
+                    desc = paste0("Which ensemble model should be used? Default to ''. ",
+                                  "CCSM4 doesn't have ensemble, just CanESM2 (r11i1p1)")),
+    defineParameter(name = "climateResolution", class = "character", 
+                    default = "3ArcMin", 
+                    min = NA, max = NA, 
+                    desc = paste0("Which DEM resolution was used for generating the ",
+                                  "climate layers? Default to '3ArcMin'.")),
+    defineParameter(name = "climateFilePath", class = "character", 
+                    default = "https://drive.google.com/open?id=17idhQ_g43vGUQfT-n2gLVvlp0X9vo-R8", 
+                    min = NA, max = NA, 
+                    desc = paste0("URL to zipped climate file coming from ClimateNA, ",
+                                  "containing all climate variables for all years of simulation"))
   ),
   inputObjects = bind_rows(
     expectsInput(objectName = "usrEmail", objectClass = "character",
@@ -75,7 +124,8 @@ defineModule(sim, list(
                  desc = "Wetland raster for creating upland raster",
                  sourceURL = NA),
     expectsInput(objectName = "uplandsRaster", objectClass = "RasterLayer",
-                 desc = "Upland raster for excluding wetlands and water from bird's predictions. LandR has NOT been tested for wetlands",
+                 desc = paste0("Upland raster for excluding wetlands and water from bird's ",
+                               "predictions. LandR has NOT been tested for wetlands"),
                  sourceURL = NA),
     expectsInput(objectName = "birdsList", objectClass = "character", 
                  desc = "Bird species to be predicted", sourceURL = NA),
@@ -84,11 +134,12 @@ defineModule(sim, list(
     expectsInput(objectName = "urlModels", objectClass = "character", 
                  desc = "Url for the GDrive folder that has all model objects",
                  sourceURL = "https://drive.google.com/open?id=1DD2lfSsVEOfHoob3fKaTvqOjwVG0ZByQ"),
-    # V2 Bird Models: "https://drive.google.com/open?id=1cpt-AKDbnlUEi6r70Oow2lEPrbzQfVpt
-    # V3 Bird Models: "https://drive.google.com/open?id=19Ys5vHj6L_jyfrZdbUb6qpKyEfDfosQ9"
-    # V4 Bird Models: "https://drive.google.com/open?id=17RhA0KkmAJPpf4qss65I0F1wC77XmhzE"
-    # V5 Bird Models: "https://drive.google.com/open?id=1HLcPg2SCtembYvKFTAXl1M2cj7hYPshg"
-    # V6 Bird Models: "https://drive.google.com/open?id=1DD2lfSsVEOfHoob3fKaTvqOjwVG0ZByQ"
+    # V2 Bird Models (old): "https://drive.google.com/open?id=1cpt-AKDbnlUEi6r70Oow2lEPrbzQfVpt"
+    # V3 Bird Models (old): "https://drive.google.com/open?id=19Ys5vHj6L_jyfrZdbUb6qpKyEfDfosQ9"
+    # V4 Bird Models (Veg+Terrain): "https://drive.google.com/open?id=17RhA0KkmAJPpf4qss65I0F1wC77XmhzE"
+    # V5 Bird Models: (Clim+Terrain)"https://drive.google.com/open?id=1HLcPg2SCtembYvKFTAXl1M2cj7hYPshg"
+    # V6 Bird Models (Veg+Clim+Terrain): "https://drive.google.com/open?id=1DD2lfSsVEOfHoob3fKaTvqOjwVG0ZByQ"
+    # V8 Bird Models (Veg+Clim+Terrain+Landscape): "https://drive.google.com/drive/folders/1AoScxKtKrVbStk9LldXGGjna9f9iBbfd?usp=sharing"
     expectsInput(objectName = "urlStaticLayers", objectClass = "RasterLayer", 
                  desc = "Static Layers (WET, VRUG, WAT, URBAG, lLED25, DEV25 and landform) url", 
                  sourceURL = "https://drive.google.com/open?id=1U3ygGav1vrqaynkP6hD_hd0Wk7LtZt4T"),
@@ -108,12 +159,14 @@ defineModule(sim, list(
                  desc = "Raster to match but NA'ed for non-forest pixels", 
                  sourceURL = NA),
     expectsInput(objectName = "climateLayersBirds", objectClass = "list",  
-                 desc = "List of raster stacks of climate variables for birds such as: AHM, bFFP, CMD, DD_0, DD_18, DD18, DD5, eFFP,
+                 desc = paste0("List of raster stacks of climate variables for birds such as: 
+                 AHM, bFFP, CMD, DD_0, DD_18, DD18, DD5, eFFP,
                         EMT, EXT, FFP, MAP, MAT, MCMT, MSP, MWMT, NFFD,
-                        PAS, PPT_sm, PPT_wt, SHM, Tave_sm, Tave_wt, TD", 
+                        PAS, PPT_sm, PPT_wt, SHM, Tave_sm, Tave_wt, TD"),
                  sourceURL = NA),
     expectsInput(objectName = "climateDataFolder", objectClass = "character",
-                 desc = "Folder where to look for the climate data. If not provided, set as inputPath(sim)", 
+                 desc = paste0("Folder where to look for the climate data. ",
+                               "If not provided, set as inputPath(sim)"), 
                  sourceURL = NA)
   ),
   outputObjects = bind_rows(
@@ -156,9 +209,10 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                               quickLoad = P(sim)$quickLoad)
       missingBirds <- setdiff(sim$birdsList, names(sim$birdModels))
       if (length(missingBirds) != 0)
-        message(crayon::yellow("Models for the following are not available:\n", paste(missingBirds, collapse = "\n")))
+        message(crayon::yellow("Models for the following are not available: ", 
+                               paste(missingBirds, collapse = ", ")))
       sim$birdsList <- names(sim$birdModels)
-      message("Bird models loaded for: \n", paste(sim$birdsList, collapse = "\n"))
+      message("Bird models loaded for: ", paste(sim$birdsList, collapse = ", "))
       sim$unavailableModels <- c(sim$unavailableModels, missingBirds)
     },
     loadFixedLayers = {
@@ -172,7 +226,6 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
               paste(names(sim$staticLayers), collapse = "\n"))
     },
     gettingData = {
-      Require("magrittr")
 
         if (P(sim)$vegetationStatic){
           timeVegetation <- start(sim)
@@ -303,7 +356,10 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                                                waterRaster = sim$waterRaster,
                                                                rastersShowingNA = P(sim)$rastersShowingNA,
                                                                scenario = P(sim)$scenario,
-                                                               memUsedByEachProcess = ifelse(P(sim)$version %in% c("5", "6"), 150000, 31000),
+                                                               # memUsedByEachProcess = ifelse(
+                                                               #   P(sim)$version %in% c("5", "6"),
+                                                               #   150000,
+                                                               #    31000),
                                                                lowMem = P(sim)$lowMem)
       print(Sys.time()-t1)
         sim <- scheduleEvent(sim, time(sim) + P(sim)$predictionInterval, "birdsNWT", "predictBirds")
