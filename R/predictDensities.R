@@ -34,7 +34,6 @@ predictDensities <- function(birdSpecies,
   predictedName <- as.list(file.path(pathData, paste0(scenario, "predicted", birdSpecies, "Year", currentTime, ".tif")))
   names(predictedName) <- birdSpecies
   message(crayon::yellow("Checking if predictions exist"))
-  
   allPredictionsExist <- all(unlist(lapply(predictedName, FUN = function(yearSpPrediction){
     fileExists <- file.exists(yearSpPrediction)
     return(fileExists)
@@ -70,7 +69,8 @@ predictDensities <- function(birdSpecies,
     stackVectors <- data.table(getValues(stkLays))
     
     # localCores <- FALSE
-      if (any(nCores == "auto", all(is.numeric(nCores), nCores > 1))) {
+      if (any(all(nCores == "auto", length(whichDontExist) > 1), 
+              all(is.numeric(nCores), nCores > 1))) {
         # if nCores is numeric or auto: local parallel
         # if (nCores == "auto") { # NOT FUNCTIONAL --> Not passing it to the future call
         #   nCores <- pemisc::optimalClusterNum(memUsedByEachProcess,
@@ -78,14 +78,21 @@ predictDensities <- function(birdSpecies,
         # }
         useParallel <- TRUE
         localParallel <- TRUE
+        message("Cores = ", nCores, "; ", 
+                length(whichDontExist), " species to run for. Using localParallel")
         # nCores <- rep("localhost", nCores)
       } else { # If nCores == 1, no parallel
-        if (all(is.numeric(nCores), nCores == 1)){
+        if (any(length(whichDontExist) == 1, 
+                all(is.numeric(nCores), nCores == 1))){
           useParallel <- FALSE 
           localParallel <- FALSE
+          message("Cores = ", nCores, "; ", length(whichDontExist), 
+                  " species to run for. Not using parallel")
         } else { # If nCores specifies the workers: parallel across machines
           useParallel <- TRUE
           localParallel <- FALSE
+          message("Cores = ", nCores, "; ", length(whichDontExist), 
+                  " species to run for. Using across machine's parallel")
         }
       }  
     
@@ -202,17 +209,37 @@ predictDensities <- function(birdSpecies,
 
       # re-Mask study area and/or for uplands
     if (rastersShowingNA){
+      uplandsRaster <- Cache(convertToNA, ras = uplandsRaster,
+                             userTags = "goal:uplandsRasterFromOneToNA")
+      uplandsPostProcessed <- reproducible::postProcess(x = uplandsRaster, 
+                                                       rasterToMatch = rasterToMatch,
+                                                       maskWithRTM = TRUE,
+                                                       destinationPath = pathData,
+                                                       filename2 = NULL)
       message(crayon::green("Masking ", bird ,
                             " prediction to ", crayon::red("uplands"), " for time ", currentTime))
-      predictedMasked <- reproducible::postProcess(x = birdRas, rasterToMatch = uplandsRaster,
-                                                   maskWithRTM = TRUE, destinationPath = pathData, filename2 = NULL)
+      predictedMasked <- reproducible::postProcess(x = birdRas, 
+                                                   rasterToMatch = uplandsPostProcessed,
+                                                   maskWithRTM = TRUE, 
+                                                   destinationPath = pathData, 
+                                                   filename2 = NULL)
     } else {
+      waterRaster <- Cache(convertToNA, ras = waterRaster,
+                             userTags = "goal:waterRasterFromOneToNA")
+      waterPostProcessed <- reproducible::postProcess(x = waterRaster, 
+                                                       rasterToMatch = rasterToMatch,
+                                                       maskWithRTM = TRUE,
+                                                       destinationPath = pathData,
+                                                       filename2 = NULL)
       message(crayon::green("Masking ", bird ,
                             " prediction to ", crayon::red("water"), " for time ", currentTime))
-      predictedMasked <- reproducible::postProcess(x = birdRas, rasterToMatch = waterRaster, 
-                                                   maskWithRTM = TRUE, 
-                                                   destinationPath = pathData, filename2 = NULL)
+      predictedMasked <- reproducible::postProcess(x = birdRas, 
+                                                   rasterToMatch = waterPostProcessed, 
+                                                   maskWithRTM = TRUE,
+                                                   destinationPath = pathData, 
+                                                   filename2 = NULL)
     }
+
       raster::writeRaster(predictedMasked, 
                           filename = predictedName[[bird]], format = "GTiff", overwrite = TRUE)
       rm(predictedMasked)
