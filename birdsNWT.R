@@ -118,14 +118,14 @@ defineModule(sim, list(
                  desc = "User's e.mail to automatic authentication of GoogleDrive",
                  sourceURL = NA),
     expectsInput(objectName = "waterRaster", objectClass = "RasterLayer",
-                 desc = "Wetland raster for excluding water from final bird layers",
+                 desc = "Wetland raster for excluding water from final bird layers. Water == 1",
                  sourceURL = NA),
     expectsInput(objectName = "wetlandRaster", objectClass = "RasterLayer",
-                 desc = "Wetland raster for creating upland raster",
+                 desc = "Wetland raster for creating upland raster. wetlands == 1",
                  sourceURL = NA),
     expectsInput(objectName = "uplandsRaster", objectClass = "RasterLayer",
                  desc = paste0("Upland raster for excluding wetlands and water from bird's ",
-                               "predictions. LandR has NOT been tested for wetlands"),
+                               "predictions. LandR has NOT been tested for wetlands. Uplands == 1"),
                  sourceURL = NA),
     expectsInput(objectName = "birdsList", objectClass = "character", 
                  desc = "Bird species to be predicted", sourceURL = NA),
@@ -476,8 +476,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                              rasterToMatch = sim$rasterToMatch,
                              userTags = c("objectName:wetLCC"))
     waterVals <- raster::getValues(sim$waterRaster) # Uplands = 3, Water = 1, Wetlands = 2, so 2 and 3 to NA
-    waterVals[waterVals == 1] <- NA
-    waterVals[waterVals > 1] <- 1
+    waterVals[!is.na(waterVals) & waterVals != 1] <- 0
     sim$waterRaster <- raster::setValues(sim$waterRaster, waterVals)
   }
   if (!suppliedElsewhere("urlStaticLayers", sim)){
