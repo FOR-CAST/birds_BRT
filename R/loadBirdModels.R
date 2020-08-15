@@ -1,36 +1,40 @@
 loadBirdModels <- function(birdsList,
                            folderUrl,
-                           cloudFolderID,
                            pathData,
-                           version,
-                           quickLoad = FALSE){
-  modelsPath <- checkPath(file.path(pathData, "models"), create = TRUE) # [ FIX ] This function doesn't deal with one model (species) at a time.
-if (quickLoad){
-  bdAvailable <- list.files(path = modelsPath, 
-                            pattern = paste0("brt", version, ".R"), full.names = TRUE, 
-                            recursive = FALSE)
-  if (length(bdAvailable) == 0){
-    message(crayon::red(paste0("quickLoad (to load the models you have available without checking the GDrive) is TRUE, ", 
-                               "\nbut you don't have the models yet. \nWill try to download the models now...")))
-    downloadedModels <- downloadBirdModels(folderUrl = folderUrl, version = version, 
-                       birdsList = birdsList, modelsPath = modelsPath)
-  } else {
-    bdAvailable <- unlist(lapply(X = birdsList, FUN = function(bird){
-      mod <- grepMulti(x = bdAvailable, patterns = bird)
-    }))
-    downloadedModels <- lapply(X = bdAvailable, FUN = function(modelFile){
-      modelFile <- basename(modelFile)
-      done <- which(basename(bdAvailable) == modelFile)
-      percentDone <- round(((done-1)/length(bdAvailable))*100, 2)
-      message(paste0("Loading model: ", crayon::magenta(modelFile), ". ", percentDone, "% completed."))
-      return(get(load(file.path(modelsPath, modelFile))))
-    })
-    names(downloadedModels) <- usefulFuns::substrBoth(strng = reproducible::basename2(bdAvailable), 
-                                                      howManyCharacters = 4, fromEnd = FALSE)
-  }
-} else {
-  downloadedModels <- downloadBirdModels(folderUrl = folderUrl, version = version, 
-                     birdsList = birdsList, modelsPath = modelsPath)
-}
+                           version){
+  
+  modelsPath <- checkPath(file.path(pathData, "models"), create = TRUE)
+  allModels <- lapply(X = birdsList, FUN = function(bird){
+    modAvailable <- grepMulti(x = list.files(modelsPath, full.names = TRUE), 
+                              patterns = c(bird, version))
+    if (length(modAvailable) == 0){
+      # If model is not available, download and return path
+      message(paste0("Model for ", bird, 
+                     " is not available. Trying download..."))
+      downloadedModels <- downloadBirdModels(folderUrl = folderUrl, 
+                                             version = version,
+                                             birdsList = bird, 
+                                             modelsPath = modelsPath,
+                                             returnPath = TRUE)
+        return(downloadedModels[[1]])
+    } else {
+      # If model is available, return the path
+      return(modAvailable)
+    }
+  })
+  # Cleanup any non existing models:
+  allModels <- allModels[!is.na(allModels)]
+  
+  allModels <- lapply(X = allModels, FUN = function(modelFile){
+    modVec <- unlist(allModels)
+    modelFile <- basename(modelFile)
+    done <- which(basename(modVec) == modelFile)
+    percentDone <- round(((done-1)/length(modVec))*100, 2)
+    message(paste0("Loading model: ", crayon::magenta(modelFile), ". ", percentDone, "% completed."))
+    return(get(load(file.path(modelsPath, modelFile))))
+  })
+  names(downloadedModels) <- usefulFuns::substrBoth(strng = reproducible::basename2(unlist(allModels)), 
+                                                    howManyCharacters = 4, fromEnd = FALSE)
+  browser()
   return(downloadedModels)
 }

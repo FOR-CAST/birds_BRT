@@ -66,10 +66,6 @@ defineModule(sim, list(
                     default = 2005, 
                     min = NA, max = NA, 
                     desc = paste0("Which layer should be used? LCC05 or LCC10?")),
-    defineParameter(name = "quickLoad", class = "logical", 
-                    default = FALSE, 
-                    min = NA, max = NA, 
-                    desc = paste0("Quickly load models?")),
     defineParameter(name = "overwritePredictions", class = "logical", 
                     default = FALSE, 
                     min = NA, max = NA, 
@@ -204,9 +200,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       sim$birdModels <- loadBirdModels(birdsList = sim$birdsList,
                               folderUrl = sim$urlModels,
                               pathData = dataPath(sim),
-                              version = P(sim)$version,
-                              cloudFolderID = sim$cloudFolderID, 
-                              quickLoad = P(sim)$quickLoad)
+                              version = P(sim)$version)
       missingBirds <- setdiff(sim$birdsList, names(sim$birdModels))
       if (length(missingBirds) != 0)
         message(crayon::yellow("Models for the following are not available: ", 
