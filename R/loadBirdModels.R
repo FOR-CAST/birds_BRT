@@ -25,7 +25,7 @@ loadBirdModels <- function(birdsList,
   # Cleanup any non existing models:
   allModels <- allModels[!is.na(allModels)]
   
-  allModels <- lapply(X = allModels, FUN = function(modelFile){
+  downloadedModels <- lapply(X = allModels, FUN = function(modelFile){
     modVec <- unlist(allModels)
     modelFile <- basename(modelFile)
     done <- which(basename(modVec) == modelFile)
@@ -35,6 +35,5 @@ loadBirdModels <- function(birdsList,
   })
   names(downloadedModels) <- usefulFuns::substrBoth(strng = reproducible::basename2(unlist(allModels)), 
                                                     howManyCharacters = 4, fromEnd = FALSE)
-  browser()
   return(downloadedModels)
 }
