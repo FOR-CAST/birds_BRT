@@ -482,7 +482,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       }
     }
   }
-    if (!P(sim)$version %in% c("5", "6", "8")){
+    if (!P(sim)$version %in% c("5", "6", "6a", "8")){
       sim$climateLayersBirds <-  NULL # Layers not needed for models 2-4
     }
   if (!suppliedElsewhere("usrEmail", sim)){
