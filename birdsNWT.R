@@ -135,7 +135,7 @@ defineModule(sim, list(
     # V4 Bird Models (Veg+Terrain): "https://drive.google.com/open?id=17RhA0KkmAJPpf4qss65I0F1wC77XmhzE"
     # V5 Bird Models: (Clim+Terrain)"https://drive.google.com/open?id=1HLcPg2SCtembYvKFTAXl1M2cj7hYPshg"
     # V6 Bird Models (Veg+Clim+Terrain): "https://drive.google.com/open?id=1DD2lfSsVEOfHoob3fKaTvqOjwVG0ZByQ"
-    # V8 Bird Models (Veg+Clim+Terrain+Landscape): "https://drive.google.com/drive/folders/1AoScxKtKrVbStk9LldXGGjna9f9iBbfd?usp=sharing"
+    # V8 Bird Models (Veg+Clim+Terrain+Landscape): "https://drive.google.com/drive/u/0/folders/1AoScxKtKrVbStk9LldXGGjna9f9iBbfd"
     expectsInput(objectName = "urlStaticLayers", objectClass = "RasterLayer", 
                  desc = "Static Layers (WET, VRUG, WAT, URBAG, lLED25, DEV25 and landform) url", 
                  sourceURL = "https://drive.google.com/open?id=1U3ygGav1vrqaynkP6hD_hd0Wk7LtZt4T"),
@@ -383,7 +383,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
           if (P(sim)$version == "5"){
             sim$urlModels <- "https://drive.google.com/open?id=1HLcPg2SCtembYvKFTAXl1M2cj7hYPshg"
           } else {
-            if (P(sim)$version == "6") {
+            if (P(sim)$version %in% c("6" "6a")) {
               sim$urlModels <- "https://drive.google.com/open?id=1DD2lfSsVEOfHoob3fKaTvqOjwVG0ZByQ"
             }
           }
@@ -477,12 +477,12 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
     if (P(sim)$version == "2"){ # Static Layers: WAT, URBAG, lLED25, DEV25 and landform
       sim$urlStaticLayers <- "https://drive.google.com/open?id=1OzWUtBvVwBPfYiI_L_2S1kj8V6CzB92D"
     } else {
-      if (P(sim)$version %in% c("3", "4", "5", "6")){ # Static Layers: WET, VRUG, WAT, URBAG, lLED25, DEV25 and landform
+      if (P(sim)$version %in% c("3", "4", "5", "6", "6a", "8")){ # Static Layers: WET, VRUG, WAT, URBAG, lLED25, DEV25 and landform
         sim$urlStaticLayers <- "https://drive.google.com/open?id=1U3ygGav1vrqaynkP6hD_hd0Wk7LtZt4T"
       }
     }
   }
-    if (!P(sim)$version %in% c("5", "6")){
+    if (!P(sim)$version %in% c("5", "6", "8")){
       sim$climateLayersBirds <-  NULL # Layers not needed for models 2-4
     }
   if (!suppliedElsewhere("usrEmail", sim)){
