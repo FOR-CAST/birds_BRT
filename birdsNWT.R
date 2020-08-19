@@ -383,7 +383,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
           if (P(sim)$version == "5"){
             sim$urlModels <- "https://drive.google.com/open?id=1HLcPg2SCtembYvKFTAXl1M2cj7hYPshg"
           } else {
-            if (P(sim)$version %in% c("6" "6a")) {
+            if (P(sim)$version %in% c("6", "6a")) {
               sim$urlModels <- "https://drive.google.com/open?id=1DD2lfSsVEOfHoob3fKaTvqOjwVG0ZByQ"
             }
           }
