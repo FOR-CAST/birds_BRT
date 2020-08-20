@@ -301,7 +301,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
           timeClimate <- time(sim)
         }
 
-        sim$climateLayersBirds <- usefulFuns::prepareClimateLayers(authEmail = usrEmail,
+        sim$climateLayersBirds <- usefulFuns::prepareClimateLayersWithBackup(authEmail = usrEmail,
                                                                pathInputs = sim$climateDataFolder, 
                                                                studyArea = sim$studyArea,
                                                                rasterToMatch = sim$rasterToMatch, years = timeClimate,
