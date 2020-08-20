@@ -51,7 +51,7 @@ defineModule(sim, list(
                     )), 
     defineParameter(".useCache", "logical", FALSE, NA, NA, 
                     paste0("Should this entire module be run with caching?")),
-    defineParameter("version", "character", "6", NA, NA, 
+    defineParameter("version", "character", "6a", NA, NA, 
                     paste0("Number of the bird module version to be used")),
     defineParameter("useParallel", "logical", FALSE, NA, NA, 
                     paste0("Should bird prediction be parallelized?")),
@@ -293,7 +293,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                                         useOnlyUplandsForPrediction = P(sim)$useOnlyUplandsForPrediction,
                                                         useStaticPredictionsForNonForest = P(sim)$useStaticPredictionsForNonForest)
       }
-      if (P(sim)$version %in% c("5", "6")) {
+      if (P(sim)$version %in% c("5", "6", "6a")) {
         if (P(sim)$climateStatic){
           timeClimate <- start(sim)
           message(crayon::red("climateStatic is TRUE. Climate layers will be kept Static"))
