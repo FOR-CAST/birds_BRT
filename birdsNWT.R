@@ -309,25 +309,22 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                                            climateModel = P(sim)$climateModel,
                                                            ensemble = P(sim)$ensemble,
                                                            fileResolution = P(sim)$climateResolution)
-        if (P(sim)$climateStatic)
-          names(sim$climateLayersBirds) <- paste0("year", time(sim))
         tryCatch({ 
           #TODO THIS NEEDS TO BE IMPLEMENTED INSIDE THE  prepareClimateLayers function [ FIX ]
-          sim$successionLayers <- raster::stack(sim$successionLayers, sim$climateLayersBirds[[paste0("year", time(sim))]])
+          sim$successionLayers <- raster::stack(sim$successionLayers, sim$climateLayersBirds)
         }, error = function(e){
           message(red(paste0("sim$successionLayers and sim$climateLayersBirds do not align for year ", time(sim),
                              ". Trying a postProcessing...")))
-          climateLayersBirds <- raster::stack(lapply(names(sim$climateLayersBirds[[paste0("year", time(sim))]]), function(lay){
+          climateLayersBirds <- raster::stack(lapply(names(sim$climateLayersBirds), function(lay){
             print(paste0("Layer: ", lay))
-            ras <- sim$climateLayersBirds[[paste0("year", time(sim))]][[lay]]
+            ras <- sim$climateLayersBirds[[lay]]
             ras <- postProcess(x = ras, 
                                destinationPath = sim$climateDataFolder,
                                rasterToMatch = sim$rasterToMatch, 
                                filename2 = NULL)
             return(ras)
           }))
-          sim$climateLayersBirds[[paste0("year", time(sim))]] <- climateLayersBirds
-          sim$successionLayers <- raster::stack(sim$successionLayers, sim$climateLayersBirds[[paste0("year", time(sim))]])
+          sim$successionLayers <- raster::stack(sim$successionLayers, climateLayersBirds)
           message(green(paste0("postProcessing was successful!")))
         })
 

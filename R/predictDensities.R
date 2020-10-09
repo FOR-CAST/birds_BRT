@@ -98,7 +98,6 @@ predictDensities <- function(birdSpecies,
     
     if (useParallel){
       if (localParallel){
-        plan(multiprocess)
         message(crayon::red(paste0("Paralellizing for ", length(whichDontExist)," species for year ", currentTime,": ",
                                    crayon::white(paste(whichDontExist, collapse = "; ")),
                                    " Using future package with plan ",
@@ -106,6 +105,7 @@ predictDensities <- function(birdSpecies,
                                    " Messages will be suppressed until done")))
 
         t1 <- Sys.time()
+        plan("multiprocess", workers = 45)
         predictVec <- future_lapply(whichDontExist,
                                     function(index) {
                                       corePrediction(bird = index,
@@ -115,6 +115,7 @@ predictDensities <- function(birdSpecies,
                                                      currentTime = currentTime,
                                                      successionStaticLayers = stackVectors)
                                     })
+        plan("sequential")
         t2 <- Sys.time()
         print(t2-t1)
         
@@ -169,7 +170,7 @@ predictDensities <- function(birdSpecies,
         
         # ~~~~~~~~~~~~~~~~~ Starting predictions
         plan(cluster, workers = nCores) # Doesn't work!!
-        
+        browser()
         # TEST
         fun <- function(x){
           paste0("This is cluster ", Sys.getpid(), ". X is ", x)
