@@ -18,7 +18,7 @@ defineModule(sim, list(
   documentation = list("README.txt", "birdsNWT.Rmd"),
   reqdPkgs = list("googledrive", "magrittr", "data.table", "raster", "gbm", 
                   "crayon", "plyr", "dplyr", "tati-micheletti/usefulFuns",
-                  "future", "future.callr", "future.apply"),
+                  "future", "future.apply", "tictoc"),
   parameters = rbind(
     defineParameter("scenario", "character", NA, NA, NA, 
                     paste0("Are these predictions from a specific scenario?",
@@ -203,7 +203,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                               version = P(sim)$version)
       missingBirds <- setdiff(sim$birdsList, names(sim$birdModels))
       if (length(missingBirds) != 0)
-        message(crayon::yellow("Models for the following are not available: ", 
+        message(crayon::yellow("Models for the following are not available: ",
                                paste(missingBirds, collapse = ", ")))
       sim$birdsList <- names(sim$birdModels)
       message("Bird models loaded for: ", paste(sim$birdsList, collapse = ", "))
@@ -272,11 +272,10 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
         if (any(!suppliedElsewhere("simulatedBiomassMap", sim),
                 !suppliedElsewhere("cohortData", sim),
                 !suppliedElsewhere("pixelGroupMap", sim)))
-          if (any(is.null(mod$simulatedBiomassMap), 
+          if (any(is.null(mod$simulatedBiomassMap),
                   is.null(mod$pixelGroupMap),
                   is.null(mod$cohortData)))
           stop("useTestSpeciesLayers is FALSE, but apparently no vegetation simulation was run. Check your inputs folder or simulation module.")
-        
         sim$successionLayers <- createSpeciesStackLayer(modelList = sim$birdModels,
                                                         pixelsWithDataAtInitialization = sim$pixelsWithDataAtInitialization,
                                                         urlStaticLayer = sim$urlStaticLayers,
@@ -301,16 +300,15 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
           timeClimate <- time(sim)
         }
 
-        sim$climateLayersBirds <- usefulFuns::prepareClimateLayersWithBackup(authEmail = usrEmail,
-                                                               pathInputs = sim$climateDataFolder, 
-                                                               studyArea = sim$studyArea,
-                                                               rasterToMatch = sim$rasterToMatch, years = timeClimate,
-                                                               RCP = P(sim)$RCP,
-                                                               climateModel = P(sim)$climateModel,
-                                                               ensemble = P(sim)$ensemble, 
-                                                               climateFilePath = P(sim)$climateFilePath,
-                                                               fileResolution = P(sim)$climateResolution,
-                                                               variables = "birdsModel", model = "birds")
+        sim$climateLayersBirds <- prepareBirdClimateLayers(authEmail = sim$usrEmail,
+                                                           pathToAnnualFolders = sim$climateDataFolder,
+                                                           studyArea = sim$studyArea,
+                                                           rasterToMatch = sim$rasterToMatch,
+                                                           year = timeClimate,
+                                                           RCP = P(sim)$RCP,
+                                                           climateModel = P(sim)$climateModel,
+                                                           ensemble = P(sim)$ensemble,
+                                                           fileResolution = P(sim)$climateResolution)
         if (P(sim)$climateStatic)
           names(sim$climateLayersBirds) <- paste0("year", time(sim))
         tryCatch({ 
