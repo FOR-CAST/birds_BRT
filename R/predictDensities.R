@@ -105,7 +105,7 @@ predictDensities <- function(birdSpecies,
                                    " Messages will be suppressed until done")))
 
         t1 <- Sys.time()
-        plan("multiprocess", workers = 45)
+        plan("multiprocess", workers = length(whichDontExist))
         predictVec <- future_lapply(whichDontExist,
                                     function(index) {
                                       corePrediction(bird = index,
