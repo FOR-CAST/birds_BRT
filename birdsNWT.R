@@ -109,7 +109,7 @@ defineModule(sim, list(
                     desc = paste0("URL to zipped climate file coming from ClimateNA, ",
                                   "containing all climate variables for all years of simulation"))
   ),
-  inputObjects = bind_rows(
+  inputObjects = bindrows(
     expectsInput(objectName = "usrEmail", objectClass = "character",
                  desc = "User's e.mail to automatic authentication of GoogleDrive",
                  sourceURL = NA),
@@ -165,7 +165,7 @@ defineModule(sim, list(
                                "If not provided, set as inputPath(sim)"), 
                  sourceURL = NA)
   ),
-  outputObjects = bind_rows(
+  outputObjects = bindrows(
     createsOutput(objectName = "birdPrediction", objectClass = "list", 
                   desc = "List per year of the bird species predicted rasters"),
     createsOutput(objectName = "birdModels", objectClass = "list", 
