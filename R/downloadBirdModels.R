@@ -3,8 +3,10 @@ downloadBirdModels <- function(folderUrl,
                                birdsList, 
                                modelsPath,
                                returnPath = FALSE){
+  
   filesToDownload <- Cache(googledrive::drive_ls, path = as_id(folderUrl), 
                            pattern = paste0("brt", version, ".R"))
+  
   modelsForBirdList <- filesToDownload$name[grepl(pattern = paste(birdsList, collapse = "|"), 
                                                   x = filesToDownload$name)]
   if (length(modelsForBirdList) == 0){

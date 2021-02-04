@@ -380,6 +380,12 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
           } else {
             if (P(sim)$version %in% c("6", "6a")) {
               sim$urlModels <- "https://drive.google.com/open?id=1DD2lfSsVEOfHoob3fKaTvqOjwVG0ZByQ"
+            } else {
+              if (P(sim)$version == "8"){
+                sim$urlModels <- "https://drive.google.com/open?id=1AoScxKtKrVbStk9LldXGGjna9f9iBbfd"
+              } else {
+                stop(paste0("No urlModels were provided for model V", P(sim)$version))
+              }
             }
           }
         }
