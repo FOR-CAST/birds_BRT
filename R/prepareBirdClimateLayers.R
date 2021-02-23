@@ -1,6 +1,7 @@
 prepareBirdClimateLayers <- function(authEmail = NULL,
                                      pathToAnnualFolders, 
                                      year,
+                                     modelVersion = "8",
                                      fileResolution = NULL,
                                      RCP = NULL, # 85
                                      climateModel = NULL, # CCSM ~CanESM2~ ==> On 21stNOV19 changed
@@ -10,7 +11,7 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
                                      studyArea = NULL,
                                      datasetSpan = c(2011, 2100),
                                      lengthEnsamble = 7){
-
+  
   googledrive::drive_auth(email = authEmail)
   # 0. Make sure it has all defaults
   # 
@@ -47,13 +48,17 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
     message(paste0(fileName, " exists. Returning..."))
     return(raster::stack(fileName))
   }
-  
-  variables <- c("AHM", "bFFP", "CMD", "DD_0", "DD_18",
-                 "DD18", "DD5", "eFFP", "EMT", "EXT", "FFP",
-                 "MAP", "MAT", "MCMT", "MSP", "MWMT", "NFFD",
-                 "PAS", "PPT_sm", "PPT_wt", "SHM", "Tave_sm",
-                 "Tave_wt", "TD")
-
+    if (!modelVersion == "8"){
+      variables <- c("AHM", "bFFP", "CMD", "DD_0", "DD_18",
+                     "DD18", "DD5", "eFFP", "EMT", "EXT", "FFP",
+                     "MAP", "MAT", "MCMT", "MSP", "MWMT", "NFFD",
+                     "PAS", "PPT_sm", "PPT_wt", "SHM", "Tave_sm",
+                     "Tave_wt", "TD")
+    } else {
+      variables <- c("AHM", "CMD", "EMT", "MAT", "NFFD",
+                     "PPT_wt", "SHM", "Tave_sm",
+                     "TD", "MAP")
+    }
   folders <- grepMulti(list.dirs(pathToAnnualFolders), patterns = "MSY")
   # Identify all the closest 7 years
   if (year == min(datasetSpan)){
@@ -63,18 +68,20 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
   } else {
     yearsToAverage <- (year-((lengthEnsamble-1)/2)):(year+((lengthEnsamble-1)/2))
   }
+  
     # NOTE: Even though we have data from before 2011, its not 
     # in the same format as the future ones, which means is not 
     # readly usable. Sigh. One day I might make it usable. Not now.
   
   ensembleStack <- lapply(yearsToAverage, function(Y){
-    currentYearFolder <- grepMulti(x = folders, patterns = Y)
+    currentYearFolder <- grepMulti(x = folders, patterns = paste0(Y, "MSY"))
     allFiles <- paste0(tools::file_path_sans_ext(variables), "Year", Y, ".tif")
-    allFilesPaths <- file.path(currentYearFolder, allFiles)
-    if (!all(file.exists(allFiles))){
-      filesToLoad <- file.path(currentYearFolder, paste0(variables, ".asc"))
-      # future::plan("multiprocess", workers = length(filesToLoad))
-      variablesStack <- stack(lapply(X = filesToLoad, FUN = function(variable){
+    allFilesPaths <- file.path(dirname(currentYearFolder), allFiles)
+    whichDontExist <- which(!file.exists(allFilesPaths))
+    # Identify which of the needed variables don't exist yet and make them
+    if (length(whichDontExist) != 0){
+      filesToLoad <- file.path(currentYearFolder, paste0(variables, ".asc"))[whichDontExist]
+      lapply(X = filesToLoad, FUN = function(variable){
         tic(paste0("Processing ", basename(tools::file_path_sans_ext(variable)), " for year ", Y))
         ras <- raster(variable)
         crs(ras) <- sp::CRS(paste0('+init=epsg:4326 +proj=longlat +ellps=WGS84 ",
@@ -86,17 +93,17 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
                              destinationPath = currentYearFolder,
                              rasterToMatch = rasterToMatch,
                              format = "GTiff",
-                             filename2 = paste0(tools::file_path_sans_ext(variable), 
-                                                "Year", Y))
+                             filename2 = file.path(pathToAnnualFolders,
+                                                   paste0(tools::file_path_sans_ext(basename(variable)), 
+                                                "Year", Y)))
         }
         toc()
-        return(ras)
-      }))
-      # future::plan("sequential")
+        return(paste0("Variable ", variable, " post-processed!"))
+      })
+      variablesStack <- stack(lapply(allFilesPaths, raster))
     } else {
       variablesStack <- stack(lapply(allFilesPaths, raster))
     }
-    names(variablesStack) <- paste0(tools::file_path_sans_ext(allFiles))
     return(variablesStack)
   })
   
@@ -114,7 +121,6 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
   
   # [08OCT20 ~ Checked that the model layers below were divided by 10 to fit the models
   #            We need then to divide the prediction layers as well]
-
   # Fixing the layers for the values that were multiplied by 10 in ClimateNA V6.11
   # The variables to potentially fix are:
   # •	Annual: MAT, MWMT, MCMT, TD, AHM, SHM, EMT, EXT and MAR;

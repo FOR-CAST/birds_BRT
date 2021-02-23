@@ -58,52 +58,52 @@ predictDensities <- function(birdSpecies,
         return(NA)
       } else {
         return(yearSpPrediction)
-        }
+      }
     }))
     
     whichDontExist <- whichDontExist[!is.na(whichDontExist)]
     if (!is.null(whichDontExist))
       message(crayon::yellow(paste0("Rasters not found for ", length(whichDontExist)," birds: ", 
-                                paste(whichDontExist, collapse = ", "),". Starting predictions...")))
+                                    paste(whichDontExist, collapse = ", "),". Starting predictions...")))
     
     stackVectors <- data.table(getValues(stkLays))
     
     # localCores <- FALSE
-      if (any(all(nCores == "auto", length(whichDontExist) > 1), 
-              all(is.numeric(nCores), nCores > 1))) {
-        # if nCores is numeric or auto: local parallel
-        # if (nCores == "auto") { # NOT FUNCTIONAL --> Not passing it to the future call
-        #   nCores <- pemisc::optimalClusterNum(memUsedByEachProcess,
-        #                                       maxNumClusters = length(birdSpecies))
-        # }
+    if (any(all(nCores == "auto", length(whichDontExist) > 1), 
+            all(is.numeric(nCores), nCores > 1))) {
+      # if nCores is numeric or auto: local parallel
+      # if (nCores == "auto") { # NOT FUNCTIONAL --> Not passing it to the future call
+      #   nCores <- pemisc::optimalClusterNum(memUsedByEachProcess,
+      #                                       maxNumClusters = length(birdSpecies))
+      # }
+      useParallel <- TRUE
+      localParallel <- TRUE
+      message("Cores = ", nCores, "; ", 
+              length(whichDontExist), " species to run for. Using localParallel")
+      # nCores <- rep("localhost", nCores)
+    } else { # If nCores == 1, no parallel
+      if (any(length(whichDontExist) == 1, 
+              all(is.numeric(nCores), nCores == 1))){
+        useParallel <- FALSE 
+        localParallel <- FALSE
+        message("Cores = ", nCores, "; ", length(whichDontExist), 
+                " species to run for. Not using parallel")
+      } else { # If nCores specifies the workers: parallel across machines
         useParallel <- TRUE
-        localParallel <- TRUE
-        message("Cores = ", nCores, "; ", 
-                length(whichDontExist), " species to run for. Using localParallel")
-        # nCores <- rep("localhost", nCores)
-      } else { # If nCores == 1, no parallel
-        if (any(length(whichDontExist) == 1, 
-                all(is.numeric(nCores), nCores == 1))){
-          useParallel <- FALSE 
-          localParallel <- FALSE
-          message("Cores = ", nCores, "; ", length(whichDontExist), 
-                  " species to run for. Not using parallel")
-        } else { # If nCores specifies the workers: parallel across machines
-          useParallel <- TRUE
-          localParallel <- FALSE
-          message("Cores = ", nCores, "; ", length(whichDontExist), 
-                  " species to run for. Using across machine's parallel")
-        }
-      }  
+        localParallel <- FALSE
+        message("Cores = ", nCores, "; ", length(whichDontExist), 
+                " species to run for. Using across machine's parallel")
+      }
+    }  
     
     if (useParallel){
       if (localParallel){
         message(crayon::red(paste0("Paralellizing for ", length(whichDontExist)," species for year ", currentTime,": ",
                                    crayon::white(paste(whichDontExist, collapse = "; ")),
                                    " Using future package with plan ",
-                                   paste0(crayon::white(attributes(plan())[["call"]])[2]),
+                                   paste0(attributes(plan())[["class"]][2]),
                                    " Messages will be suppressed until done")))
-
+        
         t1 <- Sys.time()
         plan("multiprocess", workers = length(whichDontExist))
         predictVec <- future_lapply(whichDontExist,
@@ -176,9 +176,9 @@ predictDensities <- function(birdSpecies,
           paste0("This is cluster ", Sys.getpid(), ". X is ", x)
           return(x^2)
         }
-
+        
         ret <- future_lapply(X = 1:90, FUN = fun)
-
+        
       }
     } else {
       t1 <- Sys.time()
@@ -207,43 +207,43 @@ predictDensities <- function(birdSpecies,
         birdRas <- raster::setValues(x = birdRas, values = as.numeric(predictVec[[spVecIndex]]))
         predictVec[[spVecIndex]] <- NA # Remove it, should lower memory usage
         gc()
-
-      # re-Mask study area and/or for uplands
-    if (rastersShowingNA){
-      uplandsRaster <- Cache(convertToNA, ras = uplandsRaster,
-                             userTags = "goal:uplandsRasterFromOneToNA")
-      uplandsPostProcessed <- reproducible::postProcess(x = uplandsRaster, 
-                                                       rasterToMatch = rasterToMatch,
-                                                       maskWithRTM = TRUE,
-                                                       destinationPath = pathData,
+        
+        # re-Mask study area and/or for uplands
+        if (rastersShowingNA){
+          uplandsRaster <- Cache(convertToNA, ras = uplandsRaster,
+                                 userTags = "goal:uplandsRasterFromOneToNA")
+          uplandsPostProcessed <- reproducible::postProcess(x = uplandsRaster, 
+                                                            rasterToMatch = rasterToMatch,
+                                                            maskWithRTM = TRUE,
+                                                            destinationPath = pathData,
+                                                            filename2 = NULL)
+          message(crayon::green("Masking ", bird ,
+                                " prediction to ", crayon::red("uplands"), " for time ", currentTime))
+          predictedMasked <- reproducible::postProcess(x = birdRas, 
+                                                       rasterToMatch = uplandsPostProcessed,
+                                                       maskWithRTM = TRUE, 
+                                                       destinationPath = pathData, 
                                                        filename2 = NULL)
-      message(crayon::green("Masking ", bird ,
-                            " prediction to ", crayon::red("uplands"), " for time ", currentTime))
-      predictedMasked <- reproducible::postProcess(x = birdRas, 
-                                                   rasterToMatch = uplandsPostProcessed,
-                                                   maskWithRTM = TRUE, 
-                                                   destinationPath = pathData, 
-                                                   filename2 = NULL)
-    } else {
-      waterRaster <- Cache(convertToNA, ras = waterRaster,
-                             userTags = "goal:waterRasterFromOneToNA")
-      waterPostProcessed <- reproducible::postProcess(x = waterRaster, 
-                                                       rasterToMatch = rasterToMatch,
+        } else {
+          waterRaster <- Cache(convertToNA, ras = waterRaster,
+                               userTags = "goal:waterRasterFromOneToNA")
+          waterPostProcessed <- reproducible::postProcess(x = waterRaster, 
+                                                          rasterToMatch = rasterToMatch,
+                                                          maskWithRTM = TRUE,
+                                                          destinationPath = pathData,
+                                                          filename2 = NULL)
+          message(crayon::green("Masking ", bird ,
+                                " prediction to ", crayon::red("water"), " for time ", currentTime))
+          predictedMasked <- reproducible::postProcess(x = birdRas, 
+                                                       rasterToMatch = waterPostProcessed, 
                                                        maskWithRTM = TRUE,
-                                                       destinationPath = pathData,
+                                                       destinationPath = pathData, 
                                                        filename2 = NULL)
-      message(crayon::green("Masking ", bird ,
-                            " prediction to ", crayon::red("water"), " for time ", currentTime))
-      predictedMasked <- reproducible::postProcess(x = birdRas, 
-                                                   rasterToMatch = waterPostProcessed, 
-                                                   maskWithRTM = TRUE,
-                                                   destinationPath = pathData, 
-                                                   filename2 = NULL)
-    }
-
-      raster::writeRaster(predictedMasked, 
-                          filename = predictedName[[bird]], format = "GTiff", overwrite = TRUE)
-      rm(predictedMasked)
+        }
+        
+        raster::writeRaster(predictedMasked, 
+                            filename = predictedName[[bird]], format = "GTiff", overwrite = TRUE)
+        rm(predictedMasked)
       } else {
         birdFull <- strsplit(spVecIndex, "Year")
         bird <- usefulFuns::substrBoth(strng = birdFull[[1]][1], howManyCharacters = 4, fromEnd = TRUE)
