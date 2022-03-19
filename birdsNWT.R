@@ -361,11 +361,11 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
           timeClimate <- time(sim)
         }
         # Check all climate layers used:
-if (P(sim)$version == "reducedBAM") {
-  allVariablesToUse <- getVariablesFromModels_WBI(birdModels = sim$birdModels)
-} else {
+      if (P(sim)$version == "reducedBAM") {
+        allVariablesToUse <- getVariablesFromModels_WBI(birdModels = sim$birdModels)
+      } else {
         allVariablesToUse <- getVariablesFromModels(birdModels = sim$birdModels)
-}
+      }
         # Remove all but climate layers
         allVariablesToUse <- allVariablesToUse[!allVariablesToUse %in% names(sim$successionLayers)]
         # Remove Structure and Species
@@ -410,7 +410,6 @@ if (P(sim)$version == "reducedBAM") {
           message(green(paste0("postProcessing was successful!")))
           sim$successionLayers <- raster::stack(sim$successionLayers, sim$climateLayersBirds)
         })
-
       }
       t1 <- Sys.time()
       sim$birdPrediction[[paste0("Year", time(sim))]] <- predictDensities(birdSpecies = sim$birdsList,
