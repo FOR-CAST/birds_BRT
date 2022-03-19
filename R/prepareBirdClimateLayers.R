@@ -12,7 +12,7 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
                                      studyArea = NULL,
                                      datasetSpan = c(2011, 2100),
                                      lengthEnsamble = 7,
-                                     studyAreaLongName){
+                                     studyAreaLongName) {
 
   googledrive::drive_auth(email = authEmail)
   # 0. Make sure it has all defaults
@@ -55,7 +55,7 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
                                                           "_birds_",
                                                           year, ".grd"))
 
-    if (modelVersion == "reducedBAM"){
+    if (modelVersion == "reducedBAM") {
       variables <- c("AHM", "bFFP", "CMD", "DD_0", "DD18",
                      "DD5", "eFFP", "EMT", "EXT", "FFP",
                      "MAP", "MAT", "MCMT", "MSP", "MWMT", "NFFD",
@@ -64,7 +64,7 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
 
       folders <- list.dirs(pathToAnnualFolders)
     } else {
-      if (modelVersion != "8"){
+      if (modelVersion != "8") {
         variables <- c("AHM", "bFFP", "CMD", "DD_0", "DD_18",
                        "DD18", "DD5", "eFFP", "EMT", "EXT", "FFP",
                        "MAP", "MAT", "MCMT", "MSP", "MWMT", "NFFD",
@@ -78,16 +78,16 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
       folders <- list.dirs(pathToAnnualFolders, pattern = "MSY")
     }
 
-  # Identify all the closest 7 years
-  if (year == min(datasetSpan)){
-    yearsToAverage <- year:(year+(lengthEnsamble-1))
-  } else if (year == max(datasetSpan)) {
-    yearsToAverage <- (year-(lengthEnsamble-1)):year
-  } else {
-    yearsToAverage <- (year-((lengthEnsamble-1)/2)):(year+((lengthEnsamble-1)/2))
-  }
+    # Identify all the closest 7 years
+    if (year == min(datasetSpan)) {
+      yearsToAverage <- year:(year+(lengthEnsamble-1))
+    } else if (year == max(datasetSpan)) {
+      yearsToAverage <- (year-(lengthEnsamble-1)):year
+    } else {
+      yearsToAverage <- (year-((lengthEnsamble-1)/2)):(year+((lengthEnsamble-1)/2))
+    }
 
-    if (file.exists(fileName)){
+    if (file.exists(fileName)) {
       message(paste0(fileName, " exists. Returning..."))
       return(raster::stack(fileName))
     }
@@ -97,11 +97,11 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
     # readly usable. Sigh. One day I might make it usable. Not now.
 
 
-  ensembleStack <- lapply(yearsToAverage, function(Y){
+  ensembleStack <- lapply(yearsToAverage, function(Y) {
 
     allFolders <- list.dirs(file.path(folders,
                                       studyAreaLongName))
-    if (length(allFolders) == 0){
+    if (length(allFolders) == 0) {
       # Means we don't have the MSY folders in the pathToAnnualFolders
       # we might have the .zip though
       message(paste0("Directories with monthly, seasonal and yearly data not found for ",
@@ -146,7 +146,7 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
                                                                   allFiles, sep = "_"))
     whichDontExist <- which(!file.exists(allFilesPaths))
     # Identify which of the needed variables don't exist yet and make them
-    if (length(whichDontExist) != 0){
+    if (length(whichDontExist) != 0) {
 
       filesToLoad <- file.path(currentYearFolder, paste0(variables, ".asc"))[whichDontExist]
 
@@ -157,13 +157,13 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
         plan("multicore", workers = cors) else
           plan("sequential")
 
-      future_lapply(X = filesToLoad, FUN = function(variable){
+      future_lapply(X = filesToLoad, FUN = function(variable) {
         tic(paste0("Processing ", basename(tools::file_path_sans_ext(variable)), " for year ", Y))
         ras <- raster(variable)
         crs(ras) <- sp::CRS(paste0('+init=epsg:4326 +proj=longlat +ellps=WGS84 ",
                                   "+datum=WGS84 +no_defs +towgs84=0,0,0'))
         if (any(!is.null(rasterToMatch),
-                !is.null(studyArea))){
+                !is.null(studyArea))) {
           ras <- postProcess(x = ras,
                              studyArea = studyArea,
                              destinationPath = currentYearFolder,
@@ -173,12 +173,13 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
                                                    paste(climateModel, tolower(RCP),
                                                          paste0(tools::file_path_sans_ext(basename(variable)),
                                                                 "_Year", Y, ".tif"),
-                                                         sep = "_")))        }
+                                                         sep = "_")))
+        }
         toc()
         return(paste0("Variable ",
                       tools::file_path_sans_ext(basename(variable)),
                       " post-processed!"))
-      })
+      }, future.seed = TRUE)
       plan("sequential", workers = 1)
       variablesStack <- stack(lapply(allFilesPaths, raster))
     } else {
@@ -195,7 +196,7 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
     plan("multicore", workers = cors) else
       plan("sequential", workers = 1)
 
-  organizedEnsemble <- raster::stack(future_lapply(1:nlayers(ensembleStack[[1]]), function(index){
+  organizedEnsemble <- raster::stack(future_lapply(1:nlayers(ensembleStack[[1]]), function(index) {
     lays <- stack(lapply(ensembleStack, `[[`, index))
     layName <- variables[index]
     tic(paste0("Calculating average ", layName, " for year ", year))
@@ -204,7 +205,7 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
     storage.mode(ras[]) <- "integer" # Reducing size of raster by converting it to a real binary
     toc()
     return(ras)
-  }))
+  }, future.seed = TRUE))
   plan("sequential")
 
   # [08OCT20 ~ Checked that the model layers below were divided by 10 to fit the models
