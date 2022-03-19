@@ -225,7 +225,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
 
       # schedule future event(s)
       sim <- scheduleEvent(sim, start(sim), "birdsNWT", "loadModels")
-      if (!P(sim)$onlyLoadModels){
+      if (!P(sim)$onlyLoadModels) {
         sim <- scheduleEvent(sim, start(sim), "birdsNWT", "loadFixedLayers")
         sim <- scheduleEvent(sim, start(sim), "birdsNWT", "gettingData")
         sim <- scheduleEvent(sim, start(sim), "birdsNWT", "predictBirds", eventPriority = 9)
@@ -234,7 +234,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
     loadModels = {
       sim$birdModels <- loadBirdModels(birdsList = sim$birdsList,
                                        folderUrl = sim$urlModels,
-                                       pathData = dataPath(sim),
+                                       pathData = mod$dPath,
                                        version = P(sim)$version)
 
       missingBirds <- setdiff(sim$birdsList, names(sim$birdModels))
@@ -246,14 +246,14 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       sim$unavailableModels <- c(sim$unavailableModels, missingBirds)
     },
     loadFixedLayers = {
-      if (P(sim)$version == "reducedBAM"){
+      if (P(sim)$version == "reducedBAM") {
         # Need to list all covariates used in all models to remove unnecessary
         # weight
         sim$allVariables <- unique(unlist(lapply(names(sim$birdModels), function(birds) sim$birdModels[[birds]][["RES"]][["vars"]])))
       }
       sim$staticLayers <- Cache(loadStaticLayers,
                                 fileURL = sim$urlStaticLayers, # Add Cache when fun is ready
-                                pathData = dataPath(sim),
+                                pathData = mod$dPath,
                                 studyArea = sim$studyArea,
                                 rasterToMatch = sim$rasterToMatch,
                                 Province = strsplit(P(sim)$scenario, split = "_")[[1]][1],
@@ -267,14 +267,14 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
     },
     gettingData = {
 
-      if (P(sim)$vegetationStatic){
+      if (P(sim)$vegetationStatic) {
         timeVegetation <- start(sim)
         message(crayon::red("vegetationStatic is TRUE. Vegetation layers will be kept Static"))
       } else {
         timeVegetation <- time(sim)
       }
 
-      if (!is.null(sim$cohortData)){
+      if (!is.null(sim$cohortData)) {
         mod$cohortData <- sim$cohortData
       } else {
         mod$cohortData <- createModObjectBirds(data = "cohortData", sim = sim,
@@ -283,7 +283,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                           fun = qread)
       }
 
-      if (!is.null(sim$pixelGroupMap)){
+      if (!is.null(sim$pixelGroupMap)) {
         mod$pixelGroupMap <- sim$pixelGroupMap
       } else {
         mod$pixelGroupMap <- createModObjectBirds(data = "pixelGroupMap", sim = sim,
@@ -292,7 +292,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                              fun = raster, ignore = ".aux")
       }
 
-      if (!is.null(sim$simulatedBiomassMap)){
+      if (!is.null(sim$simulatedBiomassMap)) {
         mod$simulatedBiomassMap <- sim$simulatedBiomassMap
       } else {
         mod$simulatedBiomassMap <- createModObjectBirds(data = "simulatedBiomassMap",
@@ -307,14 +307,14 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
 
       # schedule future event(s)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$predictionInterval, "birdsNWT", "gettingData")
-      if (P(sim)$predictLastYear){
-        if (all(time(sim) == start(sim), (end(sim)-start(sim)) != 0))
+      if (P(sim)$predictLastYear) {
+        if (all(time(sim) == start(sim), (end(sim) - start(sim)) != 0))
           sim <- scheduleEvent(sim, end(sim), "birdsNWT", "gettingData")
       }
 
     },
     predictBirds = {
-      if (P(sim)$useTestSpeciesLayers == TRUE){
+      if (P(sim)$useTestSpeciesLayers == TRUE) {
         message("Using test layers for species. Predictions will be static and identical to original data.")
         sim$successionLayers <- Cache(prepInputStack,
                                       url = "https://drive.google.com/open?id=1QiwMJpbQYeBH5ifNZDEXe04bHmn-w4Oc",
@@ -328,37 +328,40 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
           if (any(is.null(mod$simulatedBiomassMap),
                   is.null(mod$pixelGroupMap),
                   is.null(mod$cohortData)))
-            stop("useTestSpeciesLayers is FALSE, but apparently no vegetation simulation was run. Check your inputs folder or simulation module.")
-        sim$successionLayers <- createSpeciesStackLayer(modelList = sim$birdModels,
-                                                        pixelsWithDataAtInitialization = sim$pixelsWithDataAtInitialization,
-                                                        urlStaticLayer = sim$urlStaticLayers,
-                                                        simulatedBiomassMap = mod$simulatedBiomassMap,
-                                                        cohortData = mod$cohortData,
-                                                        staticLayers = sim$staticLayers,
-                                                        sppEquiv = sim$sppEquiv,
-                                                        sppEquivCol = sim$sppEquivCol,
-                                                        pixelGroupMap = mod$pixelGroupMap,
-                                                        allVariables = sim$allVariables,
-                                                        pathData = dataPath(sim),
-                                                        forestOnly = sim$forestOnly,
-                                                        uplandsRaster = sim$uplandsRaster,
-                                                        rasterToMatch = sim$rasterToMatch,
-                                                        useOnlyUplandsForPrediction = P(sim)$useOnlyUplandsForPrediction,
-                                                        useStaticPredictionsForNonForest = P(sim)$useStaticPredictionsForNonForest,
-                                                        version = P(sim)$version,
-                                                        urlStaticLayers = sim$urlStaticLayers,
-                                                        studyArea = sim$studyArea,
-                                                        Province = strsplit(P(sim)$scenario, split = "_")[[1]][1])
+            stop("'useTestSpeciesLayers' is FALSE, but apparently no vegetation simulation was run.",
+                 " Check your inputs folder or simulation module.")
+        sim$successionLayers <- createSpeciesStackLayer(
+          modelList = sim$birdModels,
+          pixelsWithDataAtInitialization = sim$pixelsWithDataAtInitialization,
+          urlStaticLayer = sim$urlStaticLayers,
+          simulatedBiomassMap = mod$simulatedBiomassMap,
+          cohortData = mod$cohortData,
+          staticLayers = sim$staticLayers,
+          sppEquiv = sim$sppEquiv,
+          sppEquivCol = sim$sppEquivCol,
+          pixelGroupMap = mod$pixelGroupMap,
+          allVariables = sim$allVariables,
+          pathData = mod$dPath,
+          forestOnly = sim$forestOnly,
+          uplandsRaster = sim$uplandsRaster,
+          rasterToMatch = sim$rasterToMatch,
+          useOnlyUplandsForPrediction = P(sim)$useOnlyUplandsForPrediction,
+          useStaticPredictionsForNonForest = P(sim)$useStaticPredictionsForNonForest,
+          version = P(sim)$version,
+          urlStaticLayers = sim$urlStaticLayers,
+          studyArea = sim$studyArea,
+          Province = strsplit(P(sim)$scenario, split = "_")[[1]][1]
+        )
       }
       if (P(sim)$version %in% c("5", "6", "6a", "8", "reducedBAM")) {
-        if (P(sim)$climateStatic){
+        if (P(sim)$climateStatic) {
           timeClimate <- start(sim)
           message(crayon::red("climateStatic is TRUE. Climate layers will be kept Static"))
         } else {
           timeClimate <- time(sim)
         }
         # Check all climate layers used:
-if (P(sim)$version == "reducedBAM"){
+if (P(sim)$version == "reducedBAM") {
   allVariablesToUse <- getVariablesFromModels_WBI(birdModels = sim$birdModels)
 } else {
         allVariablesToUse <- getVariablesFromModels(birdModels = sim$birdModels)
@@ -391,10 +394,10 @@ if (P(sim)$version == "reducedBAM"){
         tryCatch({
           #TODO THIS NEEDS TO BE IMPLEMENTED INSIDE THE  prepareClimateLayers function [ FIX ]
           sim$successionLayers <- raster::stack(sim$successionLayers, sim$climateLayersBirds)
-        }, error = function(e){
+        }, error = function(e) {
           message(red(paste0("sim$successionLayers and sim$climateLayersBirds do not align for year ", time(sim),
                              ". Trying a postProcessing...")))
-          climateLayersBirds <- raster::stack(lapply(names(sim$climateLayersBirds), function(lay){
+          climateLayersBirds <- raster::stack(lapply(names(sim$climateLayersBirds), function(lay) {
             print(paste0("Layer: ", lay))
             ras <- sim$climateLayersBirds[[lay]]
             ras <- postProcess(x = ras,
@@ -426,10 +429,10 @@ if (P(sim)$version == "reducedBAM"){
                                                                           rastersShowingNA = P(sim)$rastersShowingNA,
                                                                           scenario = P(sim)$scenario,
                                                                           lowMem = P(sim)$lowMem)
-      print(Sys.time()-t1)
+      print(Sys.time() - t1)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$predictionInterval, "birdsNWT", "predictBirds")
-      if (P(sim)$predictLastYear){
-        if (all(time(sim) == start(sim), (end(sim)-start(sim)) != 0))
+      if (P(sim)$predictLastYear) {
+        if (all(time(sim) == start(sim), (end(sim) - start(sim)) != 0))
           sim <- scheduleEvent(sim, end(sim), "birdsNWT", "predictBirds")
       }
 
@@ -441,23 +444,23 @@ if (P(sim)$version == "reducedBAM"){
 }
 
 .inputObjects <- function(sim) {
-  if (!suppliedElsewhere("urlModels", sim)){
-    if (P(sim)$version == "2"){
+  if (!suppliedElsewhere("urlModels", sim)) {
+    if (P(sim)$version == "2") {
       sim$urlModels <- "https://drive.google.com/open?id=1cpt-AKDbnlUEi6r70Oow2lEPrbzQfVpt"
     } else {
-      if (P(sim)$version == "3"){
+      if (P(sim)$version == "3") {
         sim$urlModels <- "https://drive.google.com/open?id=19Ys5vHj6L_jyfrZdbUb6qpKyEfDfosQ9"
       } else {
-        if (P(sim)$version == "4"){
+        if (P(sim)$version == "4") {
           sim$urlModels <- "https://drive.google.com/open?id=17RhA0KkmAJPpf4qss65I0F1wC77XmhzE"
         } else {
-          if (P(sim)$version == "5"){
+          if (P(sim)$version == "5") {
             sim$urlModels <- "https://drive.google.com/open?id=1HLcPg2SCtembYvKFTAXl1M2cj7hYPshg"
           } else {
             if (P(sim)$version %in% c("6", "6a")) {
               sim$urlModels <- "https://drive.google.com/open?id=1DD2lfSsVEOfHoob3fKaTvqOjwVG0ZByQ"
             } else {
-              if (P(sim)$version == "8"){
+              if (P(sim)$version == "8") {
                 sim$urlModels <- "https://drive.google.com/open?id=1AoScxKtKrVbStk9LldXGGjna9f9iBbfd"
               } else {
                 stop(paste0("No urlModels were provided for model V", P(sim)$version))
@@ -468,9 +471,9 @@ if (P(sim)$version == "reducedBAM"){
       }
     }
   }
-  dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
-  message(currentModule(sim), ": using dataPath '", dPath, "'.")
-  if (!suppliedElsewhere(object = "birdsList", sim = sim)){
+  mod$dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
+  message(currentModule(sim), ": using dataPath '", mod$dPath, "'.")
+  if (!suppliedElsewhere(object = "birdsList", sim = sim)) {
     birdsAvailable <- googledrive::drive_ls(
       path = as_id(sim$urlModels),
       pattern = paste0("brt", P(sim)$version, ".R"))
@@ -481,48 +484,47 @@ if (P(sim)$version == "reducedBAM"){
              This is ok if you are passing the models, but in this case,
              you also need to provide a species list for the provided models (birdsList)")
   }
-  if (!suppliedElsewhere("studyArea", sim = sim, where = "sim")){
+  if (!suppliedElsewhere("studyArea", sim = sim, where = "sim")) {
     if (quickPlot::isRstudioServer()) options(httr_oob_default = TRUE)
 
-    message("No specific study area was provided. Croping to the Edehzhie Indigenous Protected Area (Southern NWT)")
+    message("No specific study area was provided. Cropping to the Edehzhie Indigenous Protected Area (Southern NWT)")
     Edehzhie.url <- "https://drive.google.com/open?id=1klq0nhtFJZv47iZVG8_NwcVebbimP8yT"
     sim$studyArea <- Cache(prepInputs,
                            url = Edehzhie.url,
-                           destinationPath = inputPath(sim),
+                           mod$dPath,
                            omitArgs = c("destinationPath"))
   }
 
-  if (!suppliedElsewhere("rasterToMatch", sim = sim, where = "sim")){
+  if (!suppliedElsewhere("rasterToMatch", sim = sim, where = "sim")) {
     sim$rasterToMatch <- Cache(prepInputs, url = "https://drive.google.com/open?id=1fo08FMACr_aTV03lteQ7KsaoN9xGx1Df",
                                studyArea = sim$studyArea,
-                               targetFile = "RTM.tif", destinationPath = inputPath(sim),
+                               targetFile = "RTM.tif", mod$dPath,
                                filename2 = NULL,
                                omitArgs = c("destinationPath", "filename2"))
   }
 
-  if (!suppliedElsewhere("rstLCC", sim)){
-    sim$rstLCC <- LandR::prepInputsLCC(destinationPath = dataPath(sim),
+  if (!suppliedElsewhere("rstLCC", sim)) {
+    sim$rstLCC <- LandR::prepInputsLCC(destinationPath = mod$dPath,
                                        studyArea = sim$studyArea,
                                        rasterToMatch = sim$rasterToMatch)
   }
 
-  if (!suppliedElsewhere("forestOnly", sim = sim, where = "sim")){
-
+  if (!suppliedElsewhere("forestOnly", sim = sim, where = "sim")) {
     forestClasses <- c(1:15, 34:35)
     sim$forestOnly <- sim$rasterToMatch
     sim$forestOnly[!sim$rstLCC[] %in% forestClasses] <- NA
 
   }
 
-  if (!suppliedElsewhere("uplandsRaster", sim = sim, where = "sim")){
-
-    wetlandRaster <- Cache(prepInputsLayers_DUCKS, destinationPath = dataPath(sim),
+  if (!suppliedElsewhere("uplandsRaster", sim = sim, where = "sim")) {
+    wetlandRaster <- Cache(prepInputsLayers_DUCKS,
+                           destinationPath = mod$dPath,
                            studyArea = sim$studyArea,
                            userTags = "objectName:wetlandRaster")
 
     sim$uplandsRaster <- Cache(classifyWetlands, LCC = P(sim)$baseLayer,
                                wetLayerInput = wetlandRaster,
-                               pathData = dataPath(sim),
+                               pathData = mod$dPath,
                                studyArea = sim$studyArea,
                                userTags = c("objectName:wetLCC"))
     uplandVals <- raster::getValues(sim$uplandsRaster) # Uplands = 3, so we should convert 1 an 2 to NA
@@ -531,17 +533,17 @@ if (P(sim)$version == "reducedBAM"){
     sim$uplandsRaster <- raster::setValues(sim$uplandsRaster, uplandVals)
   }
 
-  if (extent(sim$uplandsRaster) != extent(sim$studyArea)){
+  if (extent(sim$uplandsRaster) != extent(sim$studyArea)) {
     sim$uplandsRaster <- postProcess(x = sim$uplandsRaster, studyArea = sim$studyArea,
-                                     destinationFolder = dataPath(sim), filename2 = NULL)
+                                     destinationFolder = mod$dPath, filename2 = NULL)
   }
-  if (!suppliedElsewhere("waterRaster", sim)){
-    wetlandRaster <- Cache(prepInputsLayers_DUCKS, destinationPath = dataPath(sim),
+  if (!suppliedElsewhere("waterRaster", sim)) {
+    wetlandRaster <- Cache(prepInputsLayers_DUCKS, destinationPath = mod$dPath,
                            studyArea = sim$studyArea,
                            userTags = "objectName:wetlandRaster")
     sim$waterRaster <- Cache(usefulFuns::classifyWetlands, LCC = P(sim)$baseLayer,
                              wetLayerInput = wetlandRaster,
-                             pathData = dataPath(sim),
+                             pathData = mod$dPath,
                              studyArea = sim$studyArea,
                              rasterToMatch = sim$rasterToMatch,
                              userTags = c("objectName:wetLCC"))
@@ -549,50 +551,50 @@ if (P(sim)$version == "reducedBAM"){
     waterVals[!is.na(waterVals) & waterVals != 1] <- 0
     sim$waterRaster <- raster::setValues(sim$waterRaster, waterVals)
   }
-  if (!suppliedElsewhere("urlStaticLayers", sim)){
-    if (P(sim)$version == "2"){ # Static Layers: WAT, URBAG, lLED25, DEV25 and landform
+  if (!suppliedElsewhere("urlStaticLayers", sim)) {
+    if (P(sim)$version == "2") { # Static Layers: WAT, URBAG, lLED25, DEV25 and landform
       sim$urlStaticLayers <- "https://drive.google.com/open?id=1OzWUtBvVwBPfYiI_L_2S1kj8V6CzB92D"
     } else {
-      if (P(sim)$version %in% c("3", "4", "5", "6", "6a", "8")){ # Static Layers: WET, VRUG, WAT, URBAG, lLED25, DEV25 and landform
+      if (P(sim)$version %in% c("3", "4", "5", "6", "6a", "8")) { # Static Layers: WET, VRUG, WAT, URBAG, lLED25, DEV25 and landform
         sim$urlStaticLayers <- "https://drive.google.com/open?id=1U3ygGav1vrqaynkP6hD_hd0Wk7LtZt4T"
       }
     }
   }
-  if (!P(sim)$version %in% c("5", "6", "6a", "8")){
+  if (!P(sim)$version %in% c("5", "6", "6a", "8")) {
     sim$climateLayersBirds <-  NULL # Layers not needed for models 2-4
   }
-  if (!suppliedElsewhere("usrEmail", sim)){
+  if (!suppliedElsewhere("usrEmail", sim)) {
     sim$usrEmail <- if (pemisc::user() %in% c("tmichele", "Tati")) "tati.micheletti@gmail.com" else NULL
   }
 
   sim$unavailableModels <- NULL # For potentially missing modules in comparison to birds list
 
-  if (!suppliedElsewhere("pixelsWithDataAtInitialization", sim)){
+  if (!suppliedElsewhere("pixelsWithDataAtInitialization", sim)) {
     sim$pixelsWithDataAtInitialization <- NULL
     message(crayon::red("pixelsWithDataAtInitialization was not provided.",
                         " Predictions will be missing pixels where total biomass",
                         " is 0, these will be NA"))
   }
 
-  if (!suppliedElsewhere("climateDataFolder", sim)){
+  if (!suppliedElsewhere("climateDataFolder", sim)) {
     sim$climateDataFolder <- inputPath(sim)
     message(crayon::red("climateDataFolder was not provided. Using inputPath"))
   }
-  if (!suppliedElsewhere("zipClimateDataFilesFolder", sim)){
+  if (!suppliedElsewhere("zipClimateDataFilesFolder", sim)) {
     sim$zipClimateDataFilesFolder <- NULL
     message(crayon::red("zipClimateDataFilesFolder was not provided. Setting to NULL"))
   }
-  if (!suppliedElsewhere("sppEquiv", sim)){
+  if (!suppliedElsewhere("sppEquiv", sim)) {
     sim$sppEquiv <- LandR::sppEquivalencies_CA
     message(crayon::red("sppEquiv was not provided.",
                         " Defaulting to LandR's species equivalencies table"))
   }
-  if (!suppliedElsewhere("sppEquivCol", sim)){
+  if (!suppliedElsewhere("sppEquivCol", sim)) {
     sim$sppEquivCol <- "KNN"
     message(crayon::red("sppEquivCol was not provided.",
                         " Defaulting to 'KNN'"))
   }
-  if (!suppliedElsewhere("studyAreaLongName", sim)){
+  if (!suppliedElsewhere("studyAreaLongName", sim)) {
     stop("studyAreaLongName needs to be provided. Available areas:",
          "Alberta, British Columbia, Saskatchewan, Manitoba,
          Northwest Territories & Nunavut, Yukon or RIA")
