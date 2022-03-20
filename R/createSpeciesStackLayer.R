@@ -19,7 +19,7 @@ createSpeciesStackLayer <- function(modelList,
                                     urlStaticLayers,
                                     studyArea,
                                     Province) {
-  message("Biomass data was simulated, using it for prediction")
+  message("Biomass data was simulated, using it for prediction.")
 
   knownClimateCovariates <- c(
     "AHM", "bFFP", "CMD", "DD_0", "DD_18",
@@ -624,6 +624,7 @@ createSpeciesStackLayer <- function(modelList,
       "There are missing layers.",
       "Completing prediction stack with zeroed layers for:"
     )))
+    browser()
     message(crayon::yellow(paste(missingLayersNames, collapse = ", ")))
     missingLayers <- lapply(X = missingLayersNames, FUN = function(miss) {
       zeroedMap <- pixelGroupMap
