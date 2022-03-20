@@ -367,7 +367,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
         allVariablesToUse <- allVariablesToUse[!allVariablesToUse %in% names(sim$successionLayers)]
         # Remove Structure and Species
         climateVariablesToUse <- allVariablesToUse[!allVariablesToUse %in% names(sim$staticLayers)]
-browser()
+
         # TODO: In a future version, we could invert prepareBirdClimateLayers() with
         # createSpeciesStackLayer so that we can ACTUALLY check for missing climate
         # layers as opposed to just the potential climate layers' names as currently
