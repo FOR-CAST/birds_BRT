@@ -624,7 +624,6 @@ createSpeciesStackLayer <- function(modelList,
       "There are missing layers.",
       "Completing prediction stack with zeroed layers for:"
     )))
-    browser()
     message(crayon::yellow(paste(missingLayersNames, collapse = ", ")))
     missingLayers <- lapply(X = missingLayersNames, FUN = function(miss) {
       zeroedMap <- pixelGroupMap
