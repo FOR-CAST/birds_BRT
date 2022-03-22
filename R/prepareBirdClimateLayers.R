@@ -40,7 +40,6 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
                        "does not have climate projections. Returning NULL")))
     return(NULL)
   }
-
   # 1. Check if we have the layer
 # In this file we save all climate covariates that could have been used by a
 # given model. Therefore, if we have the stack, we have all of them, even if in
@@ -96,7 +95,6 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
     # in the same format as the future ones, which means is not
     # readly usable. Sigh. One day I might make it usable. Not now.
 
-
   ensembleStack <- lapply(yearsToAverage, function(Y){
 
     allFolders <- list.dirs(file.path(folders,
@@ -110,13 +108,16 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
 
       climFls <- list.files(pathToZipClimateFiles, full.names = TRUE,
                             pattern = ".zip")
+
       if (length(climFls) == 0) stop("Neither extracted climate data nor zipfiles found.
                                      Please double check paths and file names.
                                      You might have to modify filenames in R/prepareBirdClimateLayers.R")
+      ptts <- c(climateModel, tolower(RCP),
+                unlist(strsplit(studyAreaLongName, split = " ")),
+                "MSY", ".zip")
+      ptts <- ptts[!ptts %in% c("&", "and")]
       zipFile <- grepMulti(climFls,
-                           patterns = c(climateModel, tolower(RCP),
-                                        unlist(strsplit(studyAreaLongName, split = " ")),
-                                        "MSY", ".zip"))
+                           patterns = ptts)
 
       if (length(zipFile) == 0) stop("Neither extracted climate data nor zipfile found.
                                      Please double check paths and file names.
@@ -131,6 +132,7 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
       allFolders <- list.dirs(file.path(folders,
                                         studyAreaLongName))
     }
+
     currentYearFolder <- grepMulti(x = allFolders,
                                    patterns = paste0(Y, "MSY"))
 
@@ -178,7 +180,7 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
         return(paste0("Variable ",
                       tools::file_path_sans_ext(basename(variable)),
                       " post-processed!"))
-      })
+      }, future.seed = TRUE)
       plan("sequential", workers = 1)
       variablesStack <- stack(lapply(allFilesPaths, raster))
     } else {
@@ -204,7 +206,7 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
     storage.mode(ras[]) <- "integer" # Reducing size of raster by converting it to a real binary
     toc()
     return(ras)
-  }))
+  }, future.seed = TRUE))
   plan("sequential")
 
   # [08OCT20 ~ Checked that the model layers below were divided by 10 to fit the models
