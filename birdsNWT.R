@@ -234,7 +234,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
     loadModels = {
       sim$birdModels <- loadBirdModels(birdsList = sim$birdsList,
                                        folderUrl = sim$urlModels,
-                                       pathData = dataPath(sim),
+                                       pathData = mod$dPath,
                                        version = P(sim)$version)
 
       missingBirds <- setdiff(sim$birdsList, names(sim$birdModels))
@@ -253,7 +253,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
       }
       sim$staticLayers <- Cache(loadStaticLayers,
                                 fileURL = sim$urlStaticLayers, # Add Cache when fun is ready
-                                pathData = dataPath(sim),
+                                pathData = mod$dPath,
                                 studyArea = sim$studyArea,
                                 rasterToMatch = sim$rasterToMatch,
                                 Province = strsplit(P(sim)$scenario, split = "_")[[1]][1],
@@ -339,7 +339,7 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                                                         sppEquivCol = sim$sppEquivCol,
                                                         pixelGroupMap = mod$pixelGroupMap,
                                                         allVariables = sim$allVariables,
-                                                        pathData = dataPath(sim),
+                                                        pathData = mod$dPath,
                                                         forestOnly = sim$forestOnly,
                                                         uplandsRaster = sim$uplandsRaster,
                                                         rasterToMatch = sim$rasterToMatch,
@@ -502,7 +502,7 @@ if (P(sim)$version == "reducedBAM"){
   }
 
   if (!suppliedElsewhere("rstLCC", sim)){
-    sim$rstLCC <- LandR::prepInputsLCC(destinationPath = dataPath(sim),
+    sim$rstLCC <- LandR::prepInputsLCC(destinationPath = mod$dPath,
                                        studyArea = sim$studyArea,
                                        rasterToMatch = sim$rasterToMatch)
   }
@@ -517,13 +517,13 @@ if (P(sim)$version == "reducedBAM"){
 
   if (!suppliedElsewhere("uplandsRaster", sim = sim, where = "sim")){
 
-    wetlandRaster <- Cache(prepInputsLayers_DUCKS, destinationPath = dataPath(sim),
+    wetlandRaster <- Cache(prepInputsLayers_DUCKS, destinationPath = mod$dPath,
                            studyArea = sim$studyArea,
                            userTags = "objectName:wetlandRaster")
 
     sim$uplandsRaster <- Cache(classifyWetlands, LCC = P(sim)$baseLayer,
                                wetLayerInput = wetlandRaster,
-                               pathData = dataPath(sim),
+                               pathData = mod$dPath,
                                studyArea = sim$studyArea,
                                userTags = c("objectName:wetLCC"))
     uplandVals <- raster::getValues(sim$uplandsRaster) # Uplands = 3, so we should convert 1 an 2 to NA
@@ -534,15 +534,15 @@ if (P(sim)$version == "reducedBAM"){
 
   if (extent(sim$uplandsRaster) != extent(sim$studyArea)){
     sim$uplandsRaster <- postProcess(x = sim$uplandsRaster, studyArea = sim$studyArea,
-                                     destinationFolder = dataPath(sim), filename2 = NULL)
+                                     destinationFolder = mod$dPath, filename2 = NULL)
   }
   if (!suppliedElsewhere("waterRaster", sim)){
-    wetlandRaster <- Cache(prepInputsLayers_DUCKS, destinationPath = dataPath(sim),
+    wetlandRaster <- Cache(prepInputsLayers_DUCKS, destinationPath = mod$dPath,
                            studyArea = sim$studyArea,
                            userTags = "objectName:wetlandRaster")
     sim$waterRaster <- Cache(usefulFuns::classifyWetlands, LCC = P(sim)$baseLayer,
                              wetLayerInput = wetlandRaster,
-                             pathData = dataPath(sim),
+                             pathData = mod$dPath,
                              studyArea = sim$studyArea,
                              rasterToMatch = sim$rasterToMatch,
                              userTags = c("objectName:wetLCC"))
