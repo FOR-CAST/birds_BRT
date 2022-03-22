@@ -471,6 +471,7 @@ if (P(sim)$version == "reducedBAM"){
   dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
   if (!suppliedElsewhere(object = "birdsList", sim = sim)){
+    print("birdsList not supplied. Trying to get from available models.")
     birdsAvailable <- googledrive::drive_ls(
       path = as_id(sim$urlModels),
       pattern = paste0("brt", P(sim)$version, ".R"))
