@@ -123,7 +123,7 @@ predictDensities <- function(birdSpecies,
             nBatches <- ceiling(nCoresNeeded / nCoresAvail)
             nCores2Use <- ceiling(nCoresNeeded / nBatches)
           } else {
-            nCores2Use <- pemisc::optimalClusterNumGeneralized(6000, nCoresNeeded, nCoresAvail) ## TODO: adjust RAM req.
+            nCores2Use <- pemisc::optimalClusterNumGeneralized(8000, nCoresNeeded, nCoresAvail)
           }
           #browser()
           plan("multicore", workers = nCores2Use)
