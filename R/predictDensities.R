@@ -99,12 +99,27 @@ predictDensities <- function(birdSpecies,
     if (useParallel){
       if (localParallel){
 
-        if (Sys.getenv("RSTUDIO") != 1)
-          plan("multicore", workers = length(whichDontExist)) else
-            plan("sequential", workers = 1)
+# options(future.globals.onReference = "error") # Try to debug what is going on
 
-        message(crayon::red(paste0("Paralellizing for ", length(whichDontExist)," species for year ", currentTime,": ",
-                                   crayon::white(paste(whichDontExist, collapse = "; ")),
+        if (Sys.getenv("RSTUDIO") != 1) {
+          if (packageVersion("pemisc") < "0.0.3.9004") {
+            nCoresNeeded <- length(whichDontExist)
+            nCoresAvail <- min(nCoresNeeded, 120) ## R cannot exceed 125 connections; use fewer to be safe
+            nBatches <- ceiling(nCoresNeeded / nCoresAvail)
+            nCores2Use <- ceiling(nCoresNeeded / nBatches)
+            nCores2Use <- max(nCores2Use/2, parallel::detectCores()/2)
+          } else {
+            nCores2Use <- optimalClusterNumGeneralized(6000, 115, 96) ## TODO: adjust RAM req.
+          }
+          plan("multicore", workers = nCores2Use)
+          # plan("multisession", workers = nCores2Use) # Extremely slow and high RAM usage! Not usable!
+        } else {
+          plan("sequential", workers = 1)
+        }
+
+        message(crayon::red(paste0("Paralellizing for ", nCores2Use," species for year ", currentTime,": ",
+                                   crayon::white(paste0(paste(whichDontExist, collapse = "; ")),
+                                                 "(", length(whichDontExist)," species)"),
                                    " Using future package with plan ",
                                    paste0(attributes(plan())[["class"]][2]),
                                    " Messages will be suppressed until done")))
