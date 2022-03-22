@@ -181,7 +181,7 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
                       tools::file_path_sans_ext(basename(variable)),
                       " post-processed!"))
       }, future.seed = TRUE)
-      plan("sequential", workers = 1)
+      plan("sequential")
       variablesStack <- stack(lapply(allFilesPaths, raster))
     } else {
       variablesStack <- stack(lapply(allFilesPaths, raster))
@@ -195,7 +195,7 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
       parallel::detectCores()/2
   if (Sys.getenv("RSTUDIO") != 1)
     plan("multicore", workers = cors) else
-      plan("sequential", workers = 1)
+      plan("sequential")
 
   organizedEnsemble <- raster::stack(future_lapply(1:nlayers(ensembleStack[[1]]), function(index){
     lays <- stack(lapply(ensembleStack, `[[`, index))
