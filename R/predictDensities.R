@@ -107,8 +107,6 @@ predictDensities <- function(birdSpecies,
             nCoresAvail <- min(nCoresNeeded, 120) ## R cannot exceed 125 connections; use fewer to be safe
             nBatches <- ceiling(nCoresNeeded / nCoresAvail)
             nCores2Use <- ceiling(nCoresNeeded / nBatches)
-            if (all(nCores2Use > nCoresAvail, nCores2Use/2 < nCoresAvail))
-              nCores2Use <- nCores2Use/2
           } else {
             nCores2Use <- optimalClusterNumGeneralized(6000, 115, 96) ## TODO: adjust RAM req.
           }
