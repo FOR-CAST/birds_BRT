@@ -114,22 +114,25 @@ predictDensities <- function(birdSpecies,
     if (useParallel) {
       if (localParallel) {
         # options(future.globals.onReference = "error") # Try to debug what is going on
+
+        nCoresNeeded <- length(whichDontExist)
+        nCoresAvail <- min(parallel::detectCores() - 3, 120) ## R cannot exceed 125 connections; use fewer to be safe
+
         if (Sys.getenv("RSTUDIO") != 1) {
           if (packageVersion("pemisc") < "0.0.3.9004") {
-            nCoresNeeded <- length(whichDontExist)
-            nCoresAvail <- min(nCoresNeeded, 120) ## R cannot exceed 125 connections; use fewer to be safe
             nBatches <- ceiling(nCoresNeeded / nCoresAvail)
             nCores2Use <- ceiling(nCoresNeeded / nBatches)
           } else {
-            nCores2Use <- pemisc::optimalClusterNumGeneralized(6000, length(whichDontExist)) ## TODO: adjust RAM req.
+            nCores2Use <- pemisc::optimalClusterNumGeneralized(6000, nCoresNeeded, nCoresAvail) ## TODO: adjust RAM req.
           }
+          #browser()
           plan("multicore", workers = nCores2Use)
         } else {
           plan("sequential", workers = 1)
         }
 
         message(crayon::red(paste0(
-          "Parallelizing for ", length(whichDontExist), " species for year ", currentTime, ": ",
+          "Parallelizing for ", nCoresNeeded, " species for year ", currentTime, ": ",
           crayon::white(paste(whichDontExist, collapse = "; ")),
           " Using future package with plan ",
           paste0(attributes(plan())[["class"]][2]),
