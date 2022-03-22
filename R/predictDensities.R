@@ -113,6 +113,7 @@ predictDensities <- function(birdSpecies,
 
     if (useParallel) {
       if (localParallel) {
+        # options(future.globals.onReference = "error") # Try to debug what is going on
         if (Sys.getenv("RSTUDIO") != 1) {
           if (packageVersion("pemisc") < "0.0.3.9004") {
             nCoresNeeded <- length(whichDontExist)
@@ -120,7 +121,7 @@ predictDensities <- function(birdSpecies,
             nBatches <- ceiling(nCoresNeeded / nCoresAvail)
             nCores2Use <- ceiling(nCoresNeeded / nBatches)
           } else {
-            nCores2Use <- optimalClusterNumGeneralized(6000, 115, 96) ## TODO: adjust RAM req.
+            nCores2Use <- pemisc::optimalClusterNumGeneralized(6000, length(whichDontExist)) ## TODO: adjust RAM req.
           }
           plan("multicore", workers = nCores2Use)
         } else {

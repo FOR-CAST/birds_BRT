@@ -43,7 +43,6 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
     )))
     return(NULL)
   }
-
   # 1. Check if we have the layer
   # In this file we save all climate covariates that could have been used by a
   # given model. Therefore, if we have the stack, we have all of them, even if in
@@ -122,20 +121,18 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
         "Trying to extract from zip file"
       ))
 
-      climFls <- list.files(pathToZipClimateFiles,
-        full.names = TRUE,
-        pattern = ".zip"
-      )
+      climFls <- list.files(pathToZipClimateFiles, full.names = TRUE,
+                            pattern = ".zip")
+
       if (length(climFls) == 0) stop("Neither extracted climate data nor zipfiles found.
                                      Please double check paths and file names.
                                      You might have to modify filenames in R/prepareBirdClimateLayers.R")
+      ptts <- c(climateModel, tolower(RCP),
+                unlist(strsplit(studyAreaLongName, split = " ")),
+                "MSY", ".zip")
+      ptts <- ptts[!ptts %in% c("&", "and")]
       zipFile <- grepMulti(climFls,
-        patterns = c(
-          climateModel, tolower(RCP),
-          unlist(strsplit(studyAreaLongName, split = " ")),
-          "MSY", ".zip"
-        )
-      )
+                           patterns = ptts)
 
       if (length(zipFile) == 0) stop("Neither extracted climate data nor zipfile found.
                                      Please double check paths and file names.
