@@ -86,8 +86,8 @@ predictDensities <- function(birdSpecies,
       useParallel <- TRUE
       localParallel <- TRUE
       message(
-        "Cores = ", nCores, "; ",
-        length(whichDontExist), " species to run for. Using localParallel"
+        "Requesting ", min(nCores, length(whichDontExist)), " cores to run ",
+        length(whichDontExist), " species using local parallel execution."
       )
       # nCores <- rep("localhost", nCores)
     } else { # If nCores == 1, no parallel
@@ -98,15 +98,15 @@ predictDensities <- function(birdSpecies,
         useParallel <- FALSE
         localParallel <- FALSE
         message(
-          "Cores = ", nCores, "; ", length(whichDontExist),
-          " species to run for. Not using parallel"
+          "Requesting ", min(nCores, length(whichDontExist)), " cores to run ",
+          length(whichDontExist), " species using sequential execution."
         )
       } else { # If nCores specifies the workers: parallel across machines
         useParallel <- TRUE
         localParallel <- FALSE
         message(
-          "Cores = ", nCores, "; ", length(whichDontExist),
-          " species to run for. Using across machine's parallel"
+          "Requesting ", min(nCores, length(whichDontExist)), " cores to run ",
+          length(whichDontExist), " species using remote parallel execution."
         )
       }
     }
