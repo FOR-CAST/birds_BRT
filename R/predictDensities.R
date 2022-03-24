@@ -116,7 +116,7 @@ predictDensities <- function(birdSpecies,
         # options(future.globals.onReference = "error") # Try to debug what is going on
 
         nCoresNeeded <- length(whichDontExist)
-        nCoresAvail <- min(parallel::detectCores() - 3, 120) ## R cannot exceed 125 connections; use fewer to be safe
+        nCoresAvail <- min(parallel::detectCores() - 3, getOption("NCONNECTIONS", 120L))
 
         if (Sys.getenv("RSTUDIO") != 1) {
           if (packageVersion("pemisc") < "0.0.3.9004") {
