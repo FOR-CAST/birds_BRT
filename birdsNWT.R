@@ -326,7 +326,6 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
                   is.null(mod$cohortData)))
             stop("'useTestSpeciesLayers' is FALSE, but apparently no vegetation simulation was run.",
                  " Check your inputs folder or simulation module.")
-
         sim$successionLayers <- createSpeciesStackLayer(
           modelList = sim$birdModels,
           pixelsWithDataAtInitialization = sim$pixelsWithDataAtInitialization,
