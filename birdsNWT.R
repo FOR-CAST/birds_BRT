@@ -409,29 +409,31 @@ doEvent.birdsNWT = function(sim, eventTime, eventType) {
         })
       }
       t1 <- Sys.time()
-      sim$birdPrediction[[paste0("Year", time(sim))]] <- predictDensities(birdSpecies = sim$birdsList,
-                                                                          successionLayers = sim$successionLayers,
-                                                                          uplandsRaster = sim$uplandsRaster,
-                                                                          staticLayers = sim$staticLayers,
-                                                                          currentTime = time(sim),
-                                                                          modelList = sim$birdModels,
-                                                                          pathData = outputPath(sim),
-                                                                          overwritePredictions = P(sim)$overwritePredictions,
-                                                                          useParallel = P(sim)$useParallel,
-                                                                          nCores = P(sim)$nCores,
-                                                                          studyArea = sim$studyArea,
-                                                                          rasterToMatch = sim$rasterToMatch,
-                                                                          waterRaster = sim$waterRaster,
-                                                                          rastersShowingNA = P(sim)$rastersShowingNA,
-                                                                          scenario = P(sim)$scenario,
-                                                                          lowMem = P(sim)$lowMem)
+      sim$birdPrediction[[paste0("Year", time(sim))]] <- predictDensities(
+        birdSpecies = sim$birdsList,
+        successionLayers = sim$successionLayers,
+        uplandsRaster = sim$uplandsRaster,
+        staticLayers = sim$staticLayers,
+        currentTime = time(sim),
+        modelList = sim$birdModels,
+        pathData = outputPath(sim),
+        overwritePredictions = P(sim)$overwritePredictions,
+        useParallel = P(sim)$useParallel,
+        nCores = P(sim)$nCores,
+        studyArea = sim$studyArea,
+        rasterToMatch = sim$rasterToMatch,
+        waterRaster = sim$waterRaster,
+        rastersShowingNA = P(sim)$rastersShowingNA,
+        scenario = P(sim)$scenario,
+        lowMem = P(sim)$lowMem
+      )
+
       print(Sys.time() - t1)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$predictionInterval, "birdsNWT", "predictBirds")
       if (P(sim)$predictLastYear) {
         if (all(time(sim) == start(sim), (end(sim) - start(sim)) != 0))
           sim <- scheduleEvent(sim, end(sim), "birdsNWT", "predictBirds")
       }
-
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))

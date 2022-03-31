@@ -86,8 +86,8 @@ predictDensities <- function(birdSpecies,
       useParallel <- TRUE
       localParallel <- TRUE
       message(
-        "Cores = ", nCores, "; ",
-        length(whichDontExist), " species to run for. Using localParallel"
+        "Requesting ", min(nCores, length(whichDontExist)), " cores to run ",
+        length(whichDontExist), " species using local parallel execution."
       )
       # nCores <- rep("localhost", nCores)
     } else { # If nCores == 1, no parallel
@@ -98,15 +98,15 @@ predictDensities <- function(birdSpecies,
         useParallel <- FALSE
         localParallel <- FALSE
         message(
-          "Cores = ", nCores, "; ", length(whichDontExist),
-          " species to run for. Not using parallel"
+          "Requesting ", min(nCores, length(whichDontExist)), " cores to run ",
+          length(whichDontExist), " species using sequential execution."
         )
       } else { # If nCores specifies the workers: parallel across machines
         useParallel <- TRUE
         localParallel <- FALSE
         message(
-          "Cores = ", nCores, "; ", length(whichDontExist),
-          " species to run for. Using across machine's parallel"
+          "Requesting ", min(nCores, length(whichDontExist)), " cores to run ",
+          length(whichDontExist), " species using remote parallel execution."
         )
       }
     }
@@ -116,14 +116,14 @@ predictDensities <- function(birdSpecies,
         # options(future.globals.onReference = "error") # Try to debug what is going on
 
         nCoresNeeded <- length(whichDontExist)
-        nCoresAvail <- min(parallel::detectCores() - 3, 120) ## R cannot exceed 125 connections; use fewer to be safe
+        nCoresAvail <- min(parallel::detectCores() - 3, getOption("NCONNECTIONS", 120L))
 
         if (Sys.getenv("RSTUDIO") != 1) {
           if (packageVersion("pemisc") < "0.0.3.9004") {
             nBatches <- ceiling(nCoresNeeded / nCoresAvail)
             nCores2Use <- ceiling(nCoresNeeded / nBatches)
           } else {
-            nCores2Use <- pemisc::optimalClusterNumGeneralized(6000, nCoresNeeded, nCoresAvail) ## TODO: adjust RAM req.
+            nCores2Use <- pemisc::optimalClusterNumGeneralized(8000, nCoresNeeded, nCoresAvail)
           }
           #browser()
           plan("multicore", workers = nCores2Use)
