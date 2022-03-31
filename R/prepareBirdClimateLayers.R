@@ -102,14 +102,18 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
   }
 
   if (file.exists(fileName)) {
-    message(paste0(fileName, " exists. Returning..."))
-    return(raster::stack(fileName))
+    stk <- raster::stack(fileName)
+    existing <- sort(names(stk))
+    anyMissing <- setdiff(variables, existing)
+    if (length(anyMissing) == 0){
+      message(paste0(fileName, " exists. Returning..."))
+      return(stk)
+    }
   }
 
   # NOTE: Even though we have data from before 2011, its not
   # in the same format as the future ones, which means is not
   # readly usable. Sigh. One day I might make it usable. Not now.
-
   ensembleStack <- lapply(yearsToAverage, function(Y) {
     allFolders <- list.dirs(file.path(folders, studyAreaLongName))
     if (length(allFolders) == 0) {
@@ -165,11 +169,26 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
         "MSY folders to ", pathToAnnualFolders
       ))
     }
-
     allFiles <- paste0(tools::file_path_sans_ext(variables), "_Year", Y, ".tif")
     allFilesPaths <- file.path(dirname(currentYearFolder),
                                paste(climateModel, tolower(RCP), allFiles, sep = "_"))
     whichDontExist <- which(!file.exists(allFilesPaths))
+
+    # If all variables exist, we should still test if all of the rasters can be loaded
+    # for some reasons (i.e., interruption of run), some may be corrupted
+    whichDontExist2 <- unlist(lapply(seq_along(allFilesPaths), function(index){
+      fileOK <- tryCatch({
+        rs <- raster::raster(allFilesPaths[index])
+        NA
+      }, error = function(e){
+          message(crayon::red(paste0(allFiles[index],
+                                     " seems to be corrupted. Recreating.")))
+          return(TRUE)
+        }
+      )
+    }))
+    if (length(na.omit(whichDontExist2)) != 0) whichDontExist <- which(whichDontExist2)
+
     # Identify which of the needed variables don't exist yet and make them
     if (length(whichDontExist) != 0) {
       filesToLoad <- file.path(currentYearFolder, paste0(variables, ".asc"))[whichDontExist]
@@ -209,7 +228,7 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
                 ),
                 sep = "_"
               )
-            )
+            ), overwrite = TRUE
           )
         }
         toc()
@@ -239,12 +258,13 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
     lays <- stack(lapply(ensembleStack, `[[`, index))
     layName <- variables[index]
     tic(paste0("Calculating average ", layName, " for year ", year))
-    ras <- calc(lays, fun = mean, na.rm = TRUE)
+    ras <- calc(lays, fun = mean, na.rm = TRUE, overwrite = TRUE)
     names(ras) <- layName
     storage.mode(ras[]) <- "integer" # Reducing size of raster by converting it to a real binary
     toc()
     return(ras)
-  }, future.seed = TRUE))
+  },
+  future.seed = TRUE))
   plan("sequential")
 
   # [08OCT20 ~ Checked that the model layers below were divided by 10 to fit the models
@@ -292,7 +312,7 @@ prepareBirdClimateLayers <- function(authEmail = NULL,
   names(organizedEnsemble) <- names(organizedEnsemble)
 
   message(paste0("Writing average climate layer stack for year ", year))
-  writeRaster(organizedEnsemble, filename = fileName)
+  writeRaster(organizedEnsemble, filename = fileName, overwrite = TRUE)
 
   return(raster::stack(fileName))
 }
