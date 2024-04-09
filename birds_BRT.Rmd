@@ -1,14 +1,18 @@
 ---
-title: "birdsNWT"
-author: ""
-date: "04 February 2019"
-output: pdf_document
+title: "birds_BRT"
+author: "Tati Micheletti & Alex Chubaty"
+date: "04 February 2019; updated March 2024"
+output:
+  pdf_document
+    keep_md: yes
+editor_options:
+  chunk_output_type: console
 ---
 
 # Overview
 
-The birds module for tyhe NWT loads an existing glm object for each sp located in  
-https://drive.google.com/open?id=1obSvU4ml8xa8WMQhQprd6heRrN47buvI. 
+The birds module for the NWT loads an existing glm object for each sp located in  
+<https://drive.google.com/open?id=1obSvU4ml8xa8WMQhQprd6heRrN47buvI>. 
 The model uses dynamic (vegetation: biomass of tree species) and static
 layers (Non-veg: WAT = water (1/0), URBAG = urban/agriculture (1/0),
 lLED25 = lake edge density with 5x5 moving window (continuous), 
@@ -27,7 +31,7 @@ If you don't have all packages installed yet, please
 first update all your packages and then install SpaDES. 
 Make sure you restart your session after installing all packages.
 
-```{r github, include=FALSE, eval = FALSE}
+```{r github, include = FALSE, eval = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
 update.packages(checkBuilt = TRUE)
@@ -38,7 +42,7 @@ devtools::install_github("PredictiveEcology/map@development")
 devtools::install_github("PredictiveEcology/LandR@development")  # Updates SpaDES.tools
 ```
 
-### Please, make sure you loaded the project file in RStudio. This file can be found in "NWT/modules/birdsNWT/"
+**Please, make sure you loaded the project file in RStudio.**
 
 ### Module Usage
 
@@ -46,7 +50,7 @@ devtools::install_github("PredictiveEcology/LandR@development")  # Updates SpaDE
 
 # Load SpaDES
 library("SpaDES")
-library("raster")
+library("terra")
 
 options("spades.recoveryMode" = 1)
 
@@ -77,7 +81,7 @@ birdsNWT = list(
 )
 
   isEDHZHIE <- FALSE
-  if (isEDHZHIE){
+  if (isEDHZHIE) {
     url.sA <- "https://drive.google.com/open?id=15n9BOtswKCJ81-us1u8Dbs0WT9f8bagq"
 # EDE.url <- "https://drive.google.com/open?id=1fYvNPwovjNtTABoGcegrvdFGkNfCUsxf" ???? Which Edezhie should I use?
   } else {
@@ -121,8 +125,7 @@ sppEquivCol <- "NWT"
   
   sppEquivalencies_CA <- sppEquivalencies_CA[!is.na(NWT)]
   sppEquivalencies_CA$EN_generic_short <- sppEquivalencies_CA$NWT
-  
-  
+
 .objects <- list(
   "birdsList" = c("AMRE", "BLPW", "CAWA", "FOSP", 
 "OSFL", "OVEN", "PAWA", "RCKI", "RUBL", "WCSP"), #birdSpecies,
@@ -150,7 +153,6 @@ birds_CS <- simInitAndSpades(times = times, params = parameters, modules = modul
                  objects = .objects, debug = 2)
 
 birds_CS <- restartSpades()
-
 ```
 
 ### Retrieve results:
@@ -158,24 +160,18 @@ birds_CS <- restartSpades()
 The bird prediction rasters can be found in `birdsNWT$birdPrediction`:
 
 ```{r results1}
-
 ls.str(birdsNWT$birdPrediction)
-
 ```
 
 The bird models can be accessed using `birdsNWT$birdModels`:
 
 ```{r results2}
-
 ls.str(birdsNWT$birdModels)
-
 ```
 
 At last, static and succession Layers can be seen using `birdsNWT$staticLayers` and `birdsNWT$successionLayers`, respectively:
 
 ```{r results3}
-
 ls.str(birdsNWT$staticLayers)
 ls.str(birdsNWT$successionLayers)
-
 ```

@@ -3,18 +3,18 @@
 # 1. Rename this file based on the content you are testing using
 #    `test-functionName.R` format so that your can directly call `moduleCoverage`
 #    to calculate module coverage information.
-#    `functionName` is a function's name in your module (e.g., `birdsNWTEvent1`).
-# 2. Copy this file to the tests folder (i.e., `C:/Users/Tati/Documents/GitHub/NWT/modules/birdsNWT/tests/testthat`).
+#    `functionName` is a function's name in your module (e.g., `birds_BRTEvent1`).
+# 2. Copy this file to the tests folder (i.e., `../birds_BRT/tests/testthat`).
 
 # 3. Modify the test description based on the content you are testing:
 test_that("test Event1 and Event2.", {
-  module <- list("birdsNWT")
-  path <- list(modulePath = "C:/Users/Tati/Documents/GitHub/NWT/modules",
+  module <- list("birds_BRT")
+  path <- list(modulePath = "..",
                outputPath = file.path(tempdir(), "outputs"))
   parameters <- list(
     #.progress = list(type = "graphical", interval = 1),
     .globals = list(verbose = FALSE),
-    birdsNWT = list(.saveInitialTime = NA)
+    birds_BRT = list(.saveInitialTime = NA)
   )
   times <- list(start = 0, end = 1)
 
@@ -55,8 +55,8 @@ test_that("test Event1 and Event2.", {
   #    Use this approach when using any function within the simList object
   #    (i.e., one version as a direct call, and one with `simList` object prepended).
 
-  if (exists("birdsNWTEvent1", envir = .GlobalEnv)) {
-    simOutput <- birdsNWTEvent1(mySim)
+  if (exists("birds_BRTEvent1", envir = .GlobalEnv)) {
+    simOutput <- birds_BRTEvent1(mySim)
   } else {
     simOutput <- myEvent1(mySim)
   }
@@ -66,8 +66,8 @@ test_that("test Event1 and Event2.", {
   expect_equal(simOutput$event1Test1, expectedOutputEvent1Test1) # or other expect function in testthat package.
   expect_equal(simOutput$event1Test2, as.numeric(999)) # or other expect function in testthat package.
 
-  if (exists("birdsNWTEvent2", envir = .GlobalEnv)) {
-    simOutput <- birdsNWTEvent2(mySim)
+  if (exists("birds_BRTEvent2", envir = .GlobalEnv)) {
+    simOutput <- birds_BRTEvent2(mySim)
   } else {
     simOutput <- myEvent2(mySim)
   }
