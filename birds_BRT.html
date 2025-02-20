@@ -2992,6 +2992,7 @@ border-radius: 0px;
 <div id="module-summary" class="section level3">
 <h3>Module summary</h3>
 <!-- TODO: update description for ON and other study areas -->
+<!-- see https://borealbirds.github.io/methods -->
 <p>The birds module for loads an existing glm object for each species located in<br />
 <a href="https://drive.google.com/open?id=1obSvU4ml8xa8WMQhQprd6heRrN47buvI" class="uri">https://drive.google.com/open?id=1obSvU4ml8xa8WMQhQprd6heRrN47buvI</a>.
 The model uses dynamic (vegetation: biomass of tree species) and static layers (Non-veg: WAT = water (1/0), URBAG = urban/agriculture (1/0), lLED25 = lake edge density with 5x5 moving window (continuous), DEV25 = development proportion within 5x5 moving window (continuous), and landform (categorical).</p>
@@ -3033,7 +3034,7 @@ usrEmail
 character
 </td>
 <td style="text-align:left;">
-User’s e.mail to automatic authentication of GoogleDriveNA
+NAUser’s e.mail to automatic authentication of GoogleDrive
 </td>
 <td style="text-align:left;">
 NA
@@ -3145,10 +3146,10 @@ studyArea
 SpatialPolygonDataFrame
 </td>
 <td style="text-align:left;">
-Study area for the prediction. Currently only available for NWT
+Study area for the prediction.
 </td>
 <td style="text-align:left;">
-<a href="https://drive.google.com/open?id=1P4grDYDffVyVXvMjM-RwzpuH1deZuvL3" class="uri">https://drive.google.com/open?id=1P4grDYDffVyVXvMjM-RwzpuH1deZuvL3</a>
+NA
 </td>
 </tr>
 <tr>
@@ -3162,7 +3163,7 @@ RasterLayer
 All spatial outputs will be reprojected and resampled to it
 </td>
 <td style="text-align:left;">
-<a href="https://drive.google.com/open?id=1P4grDYDffVyVXvMjM-RwzpuH1deZuvL3" class="uri">https://drive.google.com/open?id=1P4grDYDffVyVXvMjM-RwzpuH1deZuvL3</a>
+NA
 </td>
 </tr>
 <tr>
@@ -3173,7 +3174,7 @@ forestOnly
 RasterLayer
 </td>
 <td style="text-align:left;">
-Raster to match but NA’ed for non-forest pixels
+<code>rasterToMatch</code> with <code>NA</code>s for non-forest pixels.
 </td>
 <td style="text-align:left;">
 NA
@@ -3229,7 +3230,7 @@ sppEquiv
 data.table
 </td>
 <td style="text-align:left;">
-table of species equivalencies. See LandR::sppEquivalencies_CA.
+table of species equivalencies. See <code>LandR::sppEquivalencies_CA</code>.
 </td>
 <td style="text-align:left;">
 NA
@@ -3243,7 +3244,7 @@ sppEquivCol
 character
 </td>
 <td style="text-align:left;">
-The column in the specie Equivalency table to use as a naming convention
+The column in <code>sppEquiv</code> to use as a naming convention.
 </td>
 <td style="text-align:left;">
 NA
@@ -3742,8 +3743,13 @@ If set to TRUE, the module will only download the models that can be used.
 </div>
 <div id="events" class="section level3">
 <h3>Events</h3>
-<!-- TODO: describe module events -->
-<p>Describe what happens for each event type.</p>
+<ol style="list-style-type: decimal">
+<li><p><code>init</code>;</p></li>
+<li><p><code>loadModels</code>;</p></li>
+<li><p><code>loadFixedLayers</code>;</p></li>
+<li><p><code>gettingData</code>;</p></li>
+<li><p><code>predictBirds</code>;</p></li>
+</ol>
 </div>
 <div id="plotting" class="section level3">
 <h3>Plotting</h3>
