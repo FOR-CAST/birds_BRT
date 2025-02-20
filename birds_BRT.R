@@ -18,7 +18,7 @@ defineModule(sim, list(
   reqdPkgs = list(
     "crayon", "data.table", "dplyr", "future", "future.apply", "gbm", "googledrive",
     "PredictiveEcology/pemisc@development",
-    "plyr", "raster", "sf", "tictoc", ## TODO: use terra instead of raster
+    "plyr", "qs", "raster", "sf", "tictoc", ## TODO: use terra instead of raster; use qs2;
     "tati-micheletti/usefulFuns@development" ## TODO: remove
   ),
   parameters = rbind(
@@ -204,7 +204,7 @@ doEvent.birds_BRT = function(sim, eventTime, eventType) {
       #Make sure we only have one bird model for each species. Data sanity check
       sim$birdsList <- unique(sim$birdsList)
 
-      # schedule future event(s)
+      ## schedule future event(s)
       sim <- scheduleEvent(sim, start(sim), "birds_BRT", "loadModels")
       if (!P(sim)$onlyLoadModels) {
         sim <- scheduleEvent(sim, start(sim), "birds_BRT", "loadFixedLayers")
@@ -234,7 +234,7 @@ doEvent.birds_BRT = function(sim, eventTime, eventType) {
         })))
       }
       sim$staticLayers <- Cache(loadStaticLayers,
-                                fileURL = sim$urlStaticLayers, # Add Cache when fun is ready
+                                fileURL = sim$urlStaticLayers,
                                 pathData = mod$dPath,
                                 studyArea = sim$studyArea,
                                 rasterToMatch = sim$rasterToMatch,
@@ -250,7 +250,7 @@ doEvent.birds_BRT = function(sim, eventTime, eventType) {
     gettingData = {
       if (P(sim)$vegetationStatic) {
         timeVegetation <- start(sim)
-        message(crayon::red("vegetationStatic is TRUE. Vegetation layers will be kept Static"))
+        message(crayon::red("vegetationStatic is TRUE. Vegetation layers will be kept static."))
       } else {
         timeVegetation <- time(sim)
       }
