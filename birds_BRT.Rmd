@@ -1,7 +1,7 @@
 ---
 title: "birds_BRT"
 author: "Tati Micheletti & Alex Chubaty"
-date: "04 February 2019; updated March 2024"
+date: "04 February 2019; updated February 2025"
 output:
   pdf_document
     keep_md: yes
@@ -11,7 +11,7 @@ editor_options:
 
 # Overview
 
-The birds module for the NWT loads an existing glm object for each sp located in  
+The birds module for loads an existing glm object for each species located in  
 <https://drive.google.com/open?id=1obSvU4ml8xa8WMQhQprd6heRrN47buvI>. 
 The model uses dynamic (vegetation: biomass of tree species) and static
 layers (Non-veg: WAT = water (1/0), URBAG = urban/agriculture (1/0),
