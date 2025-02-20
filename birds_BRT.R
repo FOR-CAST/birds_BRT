@@ -11,7 +11,6 @@ defineModule(sim, list(
   ),
   childModules = character(0),
   version = list(birds_BRT = "2.0.0"),
-  spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -20,7 +19,7 @@ defineModule(sim, list(
     "crayon", "data.table", "dplyr", "future", "future.apply", "gbm", "googledrive",
     "PredictiveEcology/pemisc@development",
     "plyr", "sf", "terra", "tictoc",
-    "tati-micheletti/usefulFuns@development", ## TODO: remove
+    "tati-micheletti/usefulFuns@development" ## TODO: remove
   ),
   parameters = rbind(
     defineParameter("scenario", "character", NA, NA, NA,

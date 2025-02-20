@@ -30,8 +30,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-<!-- if knitting to pdf remember to add the pandoc_args: ["--extract-media", "."] option to yml in order to get the badge images -->
-
 #### Authors:
 
 `r paste(as.character(SpaDES.core::moduleMetadata(module = "birds_BRT", path = '..')$authors), sep = ', ')`
