@@ -18,7 +18,7 @@ defineModule(sim, list(
   reqdPkgs = list(
     "crayon", "data.table", "dplyr", "future", "future.apply", "gbm", "googledrive",
     "PredictiveEcology/pemisc@development",
-    "plyr", "sf", "terra", "tictoc",
+    "plyr", "raster", "sf", "tictoc", ## TODO: use terra instead of raster
     "tati-micheletti/usefulFuns@development" ## TODO: remove
   ),
   parameters = rbind(
@@ -65,37 +65,37 @@ defineModule(sim, list(
                     paste("If parallelizing, how many cores to use?",
                           "Use 'auto' (90% of available), or numeric.")),
     defineParameter("baseLayer", "numeric", 2005, NA, NA,
-                    desc = paste("Which layer should be used? LCC05 or LCC10?")),
+                    paste("Which layer should be used? LCC05 or LCC10?")),
     defineParameter("overwritePredictions", "logical", FALSE, NA, NA,
-                    desc = paste("Should overwrite bird predictions thta might be available?")),
+                    paste("Should overwrite bird predictions thta might be available?")),
     defineParameter("lowMem", "logical", FALSE, NA, NA,
-                    desc = paste("Should the bird predictions return the final",
+                    paste("Should the bird predictions return the final",
                                   "rasters (FALSE) or path to these (TRUE).")),
     defineParameter("vegetationStatic", "logical", FALSE, NA, NA,
-                    desc = paste("Should the bird predictions keep vegetation",
+                    paste("Should the bird predictions keep vegetation",
                                  "static through time?")),
     defineParameter("climateStatic", "logical", FALSE, NA, NA,
-                    desc = paste("Should the bird predictions keep climate layers",
+                    paste("Should the bird predictions keep climate layers",
                                  "static through time?")),
     defineParameter("RCP", "character", "85", NA, NA,
-                    desc = paste("Which RCP should be used? Default to 85.")),
+                    paste("Which RCP should be used? Default to 85.")),
     defineParameter("climateModel", "character", "CCSM4", NA, NA,
-                    desc = paste("Which climate model should be used? Default to CCSM4.")),
+                    paste("Which climate model should be used? Default to CCSM4.")),
     defineParameter("ensemble", "character", NULL, NA, NA,
-                    desc = paste("Which ensemble model should be used? Default to ''.",
+                    paste("Which ensemble model should be used? Default to ''.",
                                  "CCSM4 doesn't have ensemble, just CanESM2 (r11i1p1).")),
     defineParameter("climateResolution", "character", NULL, NA, NA,
-                    desc = paste("Which DEM resolution was used for generating the",
+                    paste("Which DEM resolution was used for generating the",
                                  "climate layers? Default to '3ArcMin'.")),
     defineParameter("climateFilePath", "character",
                     "https://drive.google.com/open?id=17idhQ_g43vGUQfT-n2gLVvlp0X9vo-R8",
                     min = NA, max = NA,
-                    desc = paste("URL to zipped climate file coming from ClimateNA, ",
+                    paste("URL to zipped climate file coming from ClimateNA, ",
                                  "containing all climate variables for all years of simulation.")),
     defineParameter("staticLayersNames", "character",
                     c("dev750", "led750", "nalc", "TPI", "TRI", "slope", "roughness", "lf", "ROAD"),
                     min = NA, max = NA,
-                    desc = paste("This is the vector of layer names to indicate which ones are static.",
+                    paste("This is the vector of layer names to indicate which ones are static.",
                                  "Defaults to the ones used in models from BAM.")),
     defineParameter("onlyLoadModels", "logical", FALSE, NA, NA,
                     paste("If set to TRUE, the module will only download the models that can be used."))
@@ -103,24 +103,24 @@ defineModule(sim, list(
   inputObjects = bindrows(
     ## TODO: remove 'usrEmail' to allow google auth at project level with more than just email
     expectsInput("usrEmail", "character", NA_character_,
-                 desc = "User's e.mail to automatic authentication of GoogleDrive",
+                 "User's e.mail to automatic authentication of GoogleDrive",
                  sourceURL = NA),
     expectsInput("waterRaster", "RasterLayer",
-                 desc = "Wetland raster for excluding water from final bird layers. Water == 1",
+                 "Wetland raster for excluding water from final bird layers. Water == 1",
                  sourceURL = NA),
     expectsInput("wetlandRaster", "RasterLayer",
-                 desc = "Wetland raster for creating upland raster. wetlands == 1",
+                 "Wetland raster for creating upland raster. wetlands == 1",
                  sourceURL = NA),
     expectsInput("uplandsRaster", "RasterLayer",
-                 desc = paste("Upland raster for excluding wetlands and water from bird's",
+                 paste("Upland raster for excluding wetlands and water from bird's",
                               "predictions. LandR has NOT been tested for wetlands. Uplands == 1."),
                  sourceURL = NA),
     expectsInput("birdsList", "character",
-                 desc = "Bird species to be predicted", sourceURL = NA),
+                 "Bird species to be predicted", sourceURL = NA),
     expectsInput("cloudFolderID", "character",
-                 desc = "Folder ID for cloud caching", sourceURL = NA),
+                 "Folder ID for cloud caching", sourceURL = NA),
     expectsInput("urlModels", "character",
-                 desc = paste("Url for the GDrive folder that has all models",
+                 paste("Url for the GDrive folder that has all models",
                               "(used for flat structures) objects.",
                               "Alternatively, it might be a `data.table` object",
                               "with the following columns:",
@@ -136,7 +136,7 @@ defineModule(sim, list(
     # V8 Bird Models (Veg+Clim+Terrain+Landscape): "https://drive.google.com/drive/u/0/folders/1AoScxKtKrVbStk9LldXGGjna9f9iBbfd"
     # BAM's reduced WBI: https://drive.google.com/drive/folders/1-lxvHbgTPKtvjlovsAatQsZi50Xixo1H
     expectsInput("urlStaticLayers", "RasterLayer",
-                 desc = "Static Layers (WET, VRUG, WAT, URBAG, lLED25, DEV25 and landform) url",
+                 "Static Layers (WET, VRUG, WAT, URBAG, lLED25, DEV25 and landform) url",
                  sourceURL = "https://drive.google.com/drive/u/0/folders/1G1VIR3bHZ_HztDToJnMwALuZqZ2ef38Q"),
     # V2 Static layers: "https://drive.google.com/open?id=1OzWUtBvVwBPfYiI_L_2S1kj8V6CzB92D"
     # "Static Layers (WAT, URBAG, lLED25, DEV25 and landform) url"
@@ -146,55 +146,54 @@ defineModule(sim, list(
     # V6 Static layers: "https://drive.google.com/open?id=1U3ygGav1vrqaynkP6hD_hd0Wk7LtZt4T"
     # BAM's reduced WBI (2011 layers): "https://drive.google.com/drive/u/0/folders/1RPXqgq-M1mOKMYzUnVSpw_6sjJ4m07dj"
     expectsInput("studyArea", "SpatialPolygonDataFrame",
-                 desc = "Study area for the prediction. Currently only available for NWT",
-                 sourceURL = "https://drive.google.com/open?id=1P4grDYDffVyVXvMjM-RwzpuH1deZuvL3"),
+                 paste("Study area for the prediction."),
+                 sourceURL = NA),
     expectsInput("rasterToMatch", "RasterLayer",
-                 desc = "All spatial outputs will be reprojected and resampled to it",
-                 sourceURL = "https://drive.google.com/open?id=1P4grDYDffVyVXvMjM-RwzpuH1deZuvL3"),
+                 paste("All spatial outputs will be reprojected and resampled to it"),
+                 sourceURL = NA),
     expectsInput("forestOnly", "RasterLayer",
-                 desc = "Raster to match but NA'ed for non-forest pixels",
+                 paste("`rasterToMatch` with `NA`s for non-forest pixels."),
                  sourceURL = NA),
     expectsInput("climateLayersBirds", "list",
-                 desc = paste("List of raster stacks of climate variables for birds such as:",
-                              "AHM, bFFP, CMD, DD_0, DD_18, DD18, DD5, eFFP,",
-                              "EMT, EXT, FFP, MAP, MAT, MCMT, MSP, MWMT, NFFD,",
-                              "PAS, PPT_sm, PPT_wt, SHM, Tave_sm, Tave_wt, TD,"),
+                 paste("List of raster stacks of climate variables for birds such as:",
+                       "AHM, bFFP, CMD, DD_0, DD_18, DD18, DD5, eFFP,",
+                       "EMT, EXT, FFP, MAP, MAT, MCMT, MSP, MWMT, NFFD,",
+                       "PAS, PPT_sm, PPT_wt, SHM, Tave_sm, Tave_wt, TD,"),
                  sourceURL = NA),
     expectsInput("climateDataFolder", "character",
-                 desc = paste("Folder where to look for the climate data.",
-                              "If not provided, set as inputPath(sim)."),
+                 paste("Folder where to look for the climate data.",
+                       "If not provided, set as inputPath(sim)."),
                  sourceURL = NA),
     expectsInput("zipClimateDataFilesFolder", "character",
-                 desc = paste("Folder where to look for the climate data",
-                              "'.zip' files if these have not been extracted."),
+                 paste("Folder where to look for the climate data",
+                       "'.zip' files if these have not been extracted."),
                  sourceURL = NA),
     expectsInput("sppEquiv", "data.table",
-                 desc = "table of species equivalencies. See LandR::sppEquivalencies_CA."),
+                 paste("table of species equivalencies. See `LandR::sppEquivalencies_CA`."),
+                 sourceURL = NA),
     expectsInput("sppEquivCol", "character",
-                 desc = "The column in the specie Equivalency table to use as a naming convention"),
+                 paste("The column in `sppEquiv` to use as a naming convention."),
+                 sourceURL = NA)
   ),
   outputObjects = bindrows(
     createsOutput("birdPrediction", "list",
-                  desc = "List per year of the bird species predicted rasters"),
+                  "List per year of the bird species predicted rasters"),
     createsOutput("birdModels", "list",
-                  desc = "List of the bird models for prediction"),
+                  "List of the bird models for prediction"),
     createsOutput("staticLayers", "RasterStack",
-                  desc = paste("Raster stack of all static layers (WAT, URBAG,",
-                               "lLED25, DEV25 and landform) for the bird models")),
+                  "Raster stack of all static layers (WAT, URBAG, lLED25, DEV25 and landform) for the bird models"),
     createsOutput("successionLayers", "RasterStack",
-                  desc = paste("Raster stack of all succession layers (species)",
-                               " and total biomass for the bird models")),
+                  "Raster stack of all succession layers (species) and total biomass for the bird models"),
     createsOutput("unavailableModels", "character",
-                  desc = "Character vector with all missing models"),
+                  "Character vector with all missing models"),
     createsOutput("biomassMap", "RasterLayer",
-                  desc = "Total biomass map"),
+                  "Total biomass map"),
     createsOutput("cohortData", "data.table",
-                  desc = "Table with cohort information (biomass per species per pixelGroup)"),
+                  "Table with cohort information (biomass per species per pixelGroup)"),
     createsOutput("pixelGroupMap", "RasterLayer",
-                  desc = "Mapping raster to pixelGroup"),
+                  "Mapping raster to pixelGroup"),
     createsOutput("allVariables", "character",
-                  desc = paste("Vector of all variables that compose all",
-                               "models for each of the species."))
+                  "Vector of all variables that compose all models for each of the species.")
   )
 ))
 
@@ -229,9 +228,10 @@ doEvent.birds_BRT = function(sim, eventTime, eventType) {
     },
     loadFixedLayers = {
       if (P(sim)$version == "reducedBAM") {
-        # Need to list all covariates used in all models to remove unnecessary
-        # weight
-        sim$allVariables <- unique(unlist(lapply(names(sim$birdModels), function(birds) sim$birdModels[[birds]][["RES"]][["vars"]])))
+        ## Need to list all covariates used in all models to remove unnecessary weight
+        sim$allVariables <- unique(unlist(lapply(names(sim$birdModels), function(birds) {
+          sim$birdModels[[birds]][["RES"]][["vars"]]
+        })))
       }
       sim$staticLayers <- Cache(loadStaticLayers,
                                 fileURL = sim$urlStaticLayers, # Add Cache when fun is ready
@@ -258,36 +258,47 @@ doEvent.birds_BRT = function(sim, eventTime, eventType) {
       if (!is.null(sim$cohortData)) {
         mod$cohortData <- sim$cohortData
       } else {
-        mod$cohortData <- createModObjectBirds(data = "cohortData", sim = sim,
-                                          pathInput = inputPath(sim),
-                                          currentTime = timeVegetation,
-                                          fun = qread)
+        mod$cohortData <- createModObjectBirds(
+          data = "cohortData",
+          sim = sim,
+          pathInput = inputPath(sim),
+          currentTime = timeVegetation,
+          fun = qread
+        )
       }
 
       if (!is.null(sim$pixelGroupMap)) {
         mod$pixelGroupMap <- sim$pixelGroupMap
       } else {
-        mod$pixelGroupMap <- createModObjectBirds(data = "pixelGroupMap", sim = sim,
-                                             pathInput = inputPath(sim),
-                                             currentTime = timeVegetation,
-                                             fun = raster, ignore = ".aux")
+        mod$pixelGroupMap <- createModObjectBirds(
+          data = "pixelGroupMap",
+          sim = sim,
+          pathInput = inputPath(sim),
+          currentTime = timeVegetation,
+          fun = raster,
+          ignore = ".aux"
+        )
       }
 
       if (!is.null(sim$simulatedBiomassMap)) {
         mod$simulatedBiomassMap <- sim$simulatedBiomassMap
       } else {
-        mod$simulatedBiomassMap <- createModObjectBirds(data = "simulatedBiomassMap",
-                                                   sim = sim,
-                                                   pathInput = inputPath(sim),
-                                                   currentTime = timeVegetation,
-                                                   fun = raster)
+        mod$simulatedBiomassMap <- createModObjectBirds(
+          data = "simulatedBiomassMap",
+          sim = sim,
+          pathInput = inputPath(sim),
+          currentTime = timeVegetation,
+          fun = raster
+        )
       }
+
       if (any(is.null(mod$pixelGroupMap), is.null(mod$cohortData), is.null(mod$simulatedBiomassMap))) {
         params(sim)$useTestSpeciesLayers <- TRUE
       }
 
-      # schedule future event(s)
+      ## schedule future event(s)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$predictionInterval, "birds_BRT", "gettingData")
+
       if (P(sim)$predictLastYear) {
         if (all(time(sim) == start(sim), (end(sim) - start(sim)) != 0))
           sim <- scheduleEvent(sim, end(sim), "birds_BRT", "gettingData")
@@ -296,20 +307,25 @@ doEvent.birds_BRT = function(sim, eventTime, eventType) {
     predictBirds = {
       if (P(sim)$useTestSpeciesLayers == TRUE) {
         message("Using test layers for species. Predictions will be static and identical to original data.")
-        sim$successionLayers <- Cache(prepInputStack,
-                                      url = "https://drive.google.com/open?id=1QiwMJpbQYeBH5ifNZDEXe04bHmn-w4Oc",
-                                      pathData = outputPath(sim),
-                                      studyArea = sim$studyArea,
-                                      rasterToMatch = sim$rasterToMatch)
+        sim$successionLayers <- Cache(
+          prepInputStack,
+          url = "https://drive.google.com/open?id=1QiwMJpbQYeBH5ifNZDEXe04bHmn-w4Oc",
+          pathData = outputPath(sim),
+          studyArea = sim$studyArea,
+          rasterToMatch = sim$rasterToMatch
+        )
       } else {
         if (any(!suppliedElsewhere("simulatedBiomassMap", sim),
                 !suppliedElsewhere("cohortData", sim),
-                !suppliedElsewhere("pixelGroupMap", sim)))
+                !suppliedElsewhere("pixelGroupMap", sim))) {
           if (any(is.null(mod$simulatedBiomassMap),
                   is.null(mod$pixelGroupMap),
-                  is.null(mod$cohortData)))
+                  is.null(mod$cohortData))) {
             stop("'useTestSpeciesLayers' is FALSE, but apparently no vegetation simulation was run.",
                  " Check your inputs folder or simulation module.")
+          }
+        }
+
         sim$successionLayers <- createSpeciesStackLayer(
           modelList = sim$birdModels,
           pixelsWithDataAtInitialization = sim$pixelsWithDataAtInitialization,
@@ -340,40 +356,45 @@ doEvent.birds_BRT = function(sim, eventTime, eventType) {
         } else {
           timeClimate <- time(sim)
         }
-        # Check all climate layers used:
+
+        ## Check all climate layers used:
         if (P(sim)$version == "reducedBAM") {
           allVariablesToUse <- getVariablesFromModels_WBI(birdModels = sim$birdModels)
         } else {
           allVariablesToUse <- getVariablesFromModels(birdModels = sim$birdModels)
         }
-        # Remove all but climate layers
+
+        ## Remove all but climate layers
         allVariablesToUse <- allVariablesToUse[!allVariablesToUse %in% names(sim$successionLayers)]
-        # Remove Structure and Species
+
+        ## Remove Structure and Species
         climateVariablesToUse <- allVariablesToUse[!allVariablesToUse %in% names(sim$staticLayers)]
 
-        # TODO: In a future version, we could invert prepareBirdClimateLayers() with
-        # createSpeciesStackLayer so that we can ACTUALLY check for missing climate
-        # layers as opposed to just the potential climate layers' names as currently
-        #  done in createSpeciesStackLayer().
-        sim$climateLayersBirds <- prepareBirdClimateLayers(authEmail = sim$usrEmail,
-                                                           pathToAnnualFolders = sim$climateDataFolder,
-                                                           pathToZipClimateFiles = sim$zipClimateDataFilesFolder,
-                                                           studyArea = sim$studyArea,
-                                                           rasterToMatch = sim$rasterToMatch,
-                                                           year = timeClimate,
-                                                           RCP = P(sim)$RCP,
-                                                           modelVersion = P(sim)$version,
-                                                           climateModel = P(sim)$climateModel,
-                                                           ensemble = P(sim)$ensemble,
-                                                           studyAreaLongName = sim$studyAreaLongName,
-                                                           fileResolution = P(sim)$climateResolution)
-        # Subset the climate variables to the ones we actually need in this simulation
+        ## TODO: In a future version, we could invert prepareBirdClimateLayers() with
+        ## createSpeciesStackLayer so that we can ACTUALLY check for missing climate
+        ## layers as opposed to just the potential climate layers' names as currently
+        ##  done in createSpeciesStackLayer().
+        sim$climateLayersBirds <- prepareBirdClimateLayers(
+          authEmail = sim$usrEmail,
+          pathToAnnualFolders = sim$climateDataFolder,
+          pathToZipClimateFiles = sim$zipClimateDataFilesFolder,
+          studyArea = sim$studyArea,
+          rasterToMatch = sim$rasterToMatch,
+          year = timeClimate,
+          RCP = P(sim)$RCP,
+          modelVersion = P(sim)$version,
+          climateModel = P(sim)$climateModel,
+          ensemble = P(sim)$ensemble,
+          studyAreaLongName = sim$studyAreaLongName,
+          fileResolution = P(sim)$climateResolution
+        )
+        ## Subset the climate variables to the ones we actually need in this simulation
         sim$climateLayersBirds <- raster::dropLayer(
           x = sim$climateLayersBirds,
           i = names(sim$climateLayersBirds)[!names(sim$climateLayersBirds) %in% climateVariablesToUse]
         )
         tryCatch({
-          #TODO THIS NEEDS TO BE IMPLEMENTED INSIDE THE  prepareClimateLayers function [ FIX ]
+          ## TODO: THIS NEEDS TO BE IMPLEMENTED INSIDE THE  prepareClimateLayers function [FIX]
           sim$successionLayers <- raster::stack(sim$successionLayers, sim$climateLayersBirds)
         }, error = function(e) {
           message(red(paste0("sim$successionLayers and sim$climateLayersBirds do not align for year ", time(sim),
@@ -448,57 +469,61 @@ doEvent.birds_BRT = function(sim, eventTime, eventType) {
       path = as_id(sim$urlModels),
       pattern = paste0("brt", P(sim)$version, ".R"))
     sim$birdsList <- usefulFuns::substrBoth(strng = birdsAvailable[["name"]], howManyCharacters = 4, fromEnd = FALSE)
-    # sim$birdsList <- sim$birdsList[-which(grepl(pattern = "CONW", x = sim$birdsList))] # CONW Model has some sort of problem in V3; Check V6!
-    if (all(is.null(sim$birdsList)))
-      stop("There are no bird models in the google drive link folder.
-             This is ok if you are passing the models, but in this case,
-             you also need to provide a species list for the provided models (birdsList)")
+    ## CONW Model has some sort of problem in V3; Check V6!
+    # sim$birdsList <- sim$birdsList[-which(grepl(pattern = "CONW", x = sim$birdsList))]
+    if (all(is.null(sim$birdsList))) {
+      stop(paste("There are no bird models in the google drive link folder.",
+                 "This is ok if you are passing the models, but in this case",
+                 "you also need to provide a species list for the provided models (birdsList)"))
+    }
   }
 
   if (!suppliedElsewhere("studyArea", sim = sim, where = "sim")) {
-    if (quickPlot::isRstudioServer()) options(httr_oob_default = TRUE)
-
-    message("No specific study area was provided. Cropping to the Edehzhie Indigenous Protected Area (Southern NWT)")
-    Edehzhie.url <- "https://drive.google.com/open?id=1klq0nhtFJZv47iZVG8_NwcVebbimP8yT"
-    sim$studyArea <- Cache(prepInputs,
-                           url = Edehzhie.url,
-                           mod$dPath,
-                           omitArgs = c("destinationPath"))
+    stop("studyArea must be supplied")
   }
 
   if (!suppliedElsewhere("rasterToMatch", sim = sim, where = "sim")) {
-    sim$rasterToMatch <- Cache(prepInputs, url = "https://drive.google.com/open?id=1fo08FMACr_aTV03lteQ7KsaoN9xGx1Df",
-                               studyArea = sim$studyArea,
-                               targetFile = "RTM.tif", mod$dPath,
-                               filename2 = NULL,
-                               omitArgs = c("destinationPath", "filename2"))
+    sim$rasterToMatch <- Cache(
+      prepInputs,
+      url = "https://drive.google.com/open?id=1fo08FMACr_aTV03lteQ7KsaoN9xGx1Df",
+      studyArea = sim$studyArea,
+      targetFile = "RTM.tif", mod$dPath,
+      filename2 = NULL,
+      omitArgs = c("destinationPath", "filename2")
+    )
   }
 
   if (!suppliedElsewhere("rstLCC", sim)) {
+    ## TODO: use NTEMS LCC here
     sim$rstLCC <- LandR::prepInputsLCC(destinationPath = mod$dPath,
                                        studyArea = sim$studyArea,
                                        rasterToMatch = sim$rasterToMatch)
   }
 
   if (!suppliedElsewhere("forestOnly", sim = sim, where = "sim")) {
+    ## TODO: update for NTEMS LCC
     forestClasses <- c(1:15, 34:35)
     sim$forestOnly <- sim$rasterToMatch
     sim$forestOnly[!sim$rstLCC[] %in% forestClasses] <- NA
-
   }
 
   if (!suppliedElsewhere("uplandsRaster", sim = sim, where = "sim")) {
-    wetlandRaster <- Cache(prepInputsLayers_DUCKS,
-                           destinationPath = mod$dPath,
-                           studyArea = sim$studyArea,
-                           userTags = "objectName:wetlandRaster")
+    wetlandRaster <- Cache(
+      prepInputsLayers_DUCKS,
+      destinationPath = mod$dPath,
+      studyArea = sim$studyArea,
+      userTags = "objectName:wetlandRaster"
+    )
 
-    sim$uplandsRaster <- Cache(classifyWetlands, LCC = P(sim)$baseLayer,
-                               wetLayerInput = wetlandRaster,
-                               pathData = mod$dPath,
-                               studyArea = sim$studyArea,
-                               userTags = c("objectName:wetLCC"))
-    uplandVals <- raster::getValues(sim$uplandsRaster) # Uplands = 3, so we should convert 1 an 2 to NA
+    sim$uplandsRaster <- Cache(
+      classifyWetlands,
+      LCC = P(sim)$baseLayer,
+      wetLayerInput = wetlandRaster,
+      pathData = mod$dPath,
+      studyArea = sim$studyArea,
+      userTags = c("objectName:wetLCC")
+    )
+    uplandVals <- raster::getValues(sim$uplandsRaster) ## Uplands = 3, so we should convert 1 an 2 to NA
     uplandVals[uplandVals < 3] <- NA
     uplandVals[uplandVals == 3] <- 1
     sim$uplandsRaster <- raster::setValues(sim$uplandsRaster, uplandVals)
@@ -525,10 +550,12 @@ doEvent.birds_BRT = function(sim, eventTime, eventType) {
   }
 
   if (!suppliedElsewhere("urlStaticLayers", sim)) {
-    if (P(sim)$version == "2") { # Static Layers: WAT, URBAG, lLED25, DEV25 and landform
+    if (P(sim)$version == "2") {
+      ## Static Layers: WAT, URBAG, lLED25, DEV25 and landform
       sim$urlStaticLayers <- "https://drive.google.com/open?id=1OzWUtBvVwBPfYiI_L_2S1kj8V6CzB92D"
     } else {
-      if (P(sim)$version %in% c("3", "4", "5", "6", "6a", "8")) { # Static Layers: WET, VRUG, WAT, URBAG, lLED25, DEV25 and landform
+      if (P(sim)$version %in% c("3", "4", "5", "6", "6a", "8")) {
+        ## Static Layers: WET, VRUG, WAT, URBAG, lLED25, DEV25 and landform
         sim$urlStaticLayers <- "https://drive.google.com/open?id=1U3ygGav1vrqaynkP6hD_hd0Wk7LtZt4T"
       }
     }
@@ -569,6 +596,7 @@ doEvent.birds_BRT = function(sim, eventTime, eventType) {
                         " Defaulting to 'KNN'"))
   }
 
+  ## TODO: remove
   if (!suppliedElsewhere("studyAreaLongName", sim)) {
     stop("studyAreaLongName needs to be provided. Available areas:\n",
          "Alberta, British Columbia, Saskatchewan, Manitoba, ",

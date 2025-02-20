@@ -40,6 +40,7 @@ knitr::opts_chunk$set(
 ### Module summary
 
 <!-- TODO: update description for ON and other study areas -->
+<!-- see https://borealbirds.github.io/methods -->
 
 The birds module for loads an existing glm object for each species located in  
 <https://drive.google.com/open?id=1obSvU4ml8xa8WMQhQprd6heRrN47buvI>. 
@@ -73,9 +74,15 @@ knitr::kable(df_params, caption = "List of (ref:birds-BRT) parameters and their 
 
 ### Events
 
-<!-- TODO: describe module events -->
+1. `init`;
 
-Describe what happens for each event type.
+2. `loadModels`;
+
+3. `loadFixedLayers`;
+
+4. `gettingData`;
+
+5. `predictBirds`;
 
 ### Plotting
 

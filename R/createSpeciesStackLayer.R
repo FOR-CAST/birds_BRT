@@ -415,8 +415,8 @@ createSpeciesStackLayer <- function(modelList,
     ),
     modelLayer
   ]
-  speciesStack <- raster::stack(speciesRasters[names(speciesRasters) %in% speciesLays]) %>%
-    raster::stack(biomass) %>%
+  speciesStack <- raster::stack(speciesRasters[names(speciesRasters) %in% speciesLays]) |>
+    raster::stack(biomass) |>
     raster::stack(ageMap)
 
   ############## FIX IF USE PREDICTIONS FOR UPLAND ONLY / NON-FOREST  ########
@@ -517,7 +517,7 @@ createSpeciesStackLayer <- function(modelList,
     groupsLayers <- NULL
   }
 
-  speciesStack <- raster::stack(speciesStack) %>%
+  speciesStack <- raster::stack(speciesStack) |>
     raster::stack(groupsLayers)
 
   ###################### MAKE THE LANDCOVER LAYERS  ######################
@@ -643,7 +643,7 @@ createSpeciesStackLayer <- function(modelList,
   }
 
   if (!is.null(missingLayers)) {
-    finalStk <- raster::stack(missingLayers) %>%
+    finalStk <- raster::stack(missingLayers) |>
       raster::stack(speciesStack)
   } else {
     finalStk <- raster::stack(speciesStack)
