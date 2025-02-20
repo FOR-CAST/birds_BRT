@@ -1,177 +1,114 @@
 ---
-title: "birds_BRT"
-author: "Tati Micheletti & Alex Chubaty"
-date: "04 February 2019; updated February 2025"
+title: "birds_BRT Manual"
+subtitle: "v.`r SpaDES.core::moduleMetadata(module = 'birds_BRT', path = '..')$version`"
+date: "Last updated: `r Sys.Date()`"
 output:
-  pdf_document
+  bookdown::html_document2:
+    toc: true
+    toc_float: true
+    theme: sandstone
+    number_sections: false
+    df_print: paged
     keep_md: yes
 editor_options:
   chunk_output_type: console
+  bibliography: citations/references_birds_BRT.bib
+link-citations: true
+always_allow_html: true
 ---
 
-# Overview
+# birds_BRT Module
+
+<!-- the following are text references used in captions for LaTeX compatibility -->
+(ref:birds-BRT) *birds_BRT*
+
+```{r setup-birds-BRT, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## change to eval = TRUE if all chunks are to be evaluated
+
+dir.create("figures", showWarnings = FALSE)
+
+download.file(url = "https://img.shields.io/badge/Made%20with-Markdown-1f425f.png",
+              destfile = "figures/markdownBadge.png",
+              mode = 'wb')
+```
+
+[![made-with-Markdown](figures/markdownBadge.png)](https://commonmark.org)
+
+<!-- if knitting to pdf remember to add the pandoc_args: ["--extract-media", "."] option to yml in order to get the badge images -->
+
+#### Authors:
+
+`r paste(as.character(SpaDES.core::moduleMetadata(module = "birds_BRT", path = '..')$authors), sep = ', ')`
+<!-- ideally separate authors with new lines, '\n' not working -->
+
+## Module Overview
+
+### Module summary
+
+<!-- TODO: update description for ON and other study areas -->
 
 The birds module for loads an existing glm object for each species located in  
 <https://drive.google.com/open?id=1obSvU4ml8xa8WMQhQprd6heRrN47buvI>. 
-The model uses dynamic (vegetation: biomass of tree species) and static
-layers (Non-veg: WAT = water (1/0), URBAG = urban/agriculture (1/0),
-lLED25 = lake edge density with 5x5 moving window (continuous), 
-DEV25 = development proportion within 5x5 moving window (continuous),
-and landform (categorical). North American landcover 2005 (MODIS) is
-source for all but landform (from AdaptWest land facet datset). 
+The model uses dynamic (vegetation: biomass of tree species) and static layers (Non-veg: WAT = water (1/0), URBAG = urban/agriculture (1/0), lLED25 = lake edge density with 5x5 moving window (continuous), DEV25 = development proportion within 5x5 moving window (continuous), and landform (categorical).
+
+North American landcover 2005 (MODIS) is
+source for all but landform (from AdaptWest land facet datset).
 Vector ruggedness (already available - 
-https://drive.google.com/open?id=1dgIw70mDpDYrBExA52SkPoS1TFaZdLE9) 
-and road density (that should be available from the Anthropogenic
-module) will be added to the next version of these models. The birds' 
-prediction is masked to uplands as we do not have data for lowlands.
+<https://drive.google.com/open?id=1dgIw70mDpDYrBExA52SkPoS1TFaZdLE9>) and road density (that should be available from the Anthropogenic module) will be added to the next version of these models.
+The birds' prediction is masked to uplands as we do not have data for lowlands.
 
-### Update and/or install all needed packages
+### Module inputs and parameters
 
-If you don't have all packages installed yet, please 
-first update all your packages and then install SpaDES. 
-Make sure you restart your session after installing all packages.
+Table \@ref(tab:moduleInputs-birds-BRT) shows the full list of module inputs.
 
-```{r github, include = FALSE, eval = FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-
-update.packages(checkBuilt = TRUE)
-devtools::install_github("PredictiveEcology/reproducible@development")
-devtools::install_github("achubaty/amc@development")
-devtools::install_github("PredictiveEcology/pemisc@development") # Updates SpaDES.core and quickPlot
-devtools::install_github("PredictiveEcology/map@development") 
-devtools::install_github("PredictiveEcology/LandR@development")  # Updates SpaDES.tools
+```{r moduleInputs-birds-BRT, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_inputs <- SpaDES.core::moduleInputs("birds_BRT", "..")
+knitr::kable(df_inputs,
+             caption = "List of (ref:birds-BRT) input objects and their description.") |>
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
 ```
 
-**Please, make sure you loaded the project file in RStudio.**
+Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-birds-BRT))
 
-### Module Usage
 
-```{r module_usage}
-
-# Load SpaDES
-library("SpaDES")
-library("terra")
-
-options("spades.recoveryMode" = 1)
-
-# Source functions in R folder
-invisible(sapply(X = list.files(file.path(getwd(), "R"), full.names = TRUE), FUN = source))
-invisible(sapply(X = list.files(file.path("~/modules/birdsNWT/R/"), full.names = TRUE), FUN = source))
-invisible(sapply(X = list.files(dirname(getwd()), "functions", full.names = TRUE), FUN = source)) 
-
-setPaths(modulePath = file.path(getwd(), "modules"), cachePath = file.path(getwd(), "cache"),
-         inputPath = file.path(getwd(), "outputs/08JUN19_noCS"), 
-         outputPath = file.path(getwd(), "outputs/08JUN19_noCS/birdPredictions"))
-getPaths() # shows where the 4 relevant paths are
-
-times <- list(start = 2001, end = 2100)
-
-parameters <- list(
-  .progress = list(type = "text", interval = 1), # for a progress bar
-birdsNWT = list(
-  "useStaticPredictionsForNonForest" = TRUE,
-    "useOnlyUplandsForPrediction" = TRUE,
-    "baseLayer" = 2005,
-    "overwritePredictions" = FALSE,
-    "useTestSpeciesLayers" = FALSE, # Set it to false when you actually have results from LandR_Biomass simulations to run it with
-    "useParallel" = TRUE, # Using parallel in windows is currently not working.
-    "predictionInterval" = 10,
-    "quickLoad" = TRUE
-  )
-)
-
-  isEDHZHIE <- FALSE
-  if (isEDHZHIE) {
-    url.sA <- "https://drive.google.com/open?id=15n9BOtswKCJ81-us1u8Dbs0WT9f8bagq"
-# EDE.url <- "https://drive.google.com/open?id=1fYvNPwovjNtTABoGcegrvdFGkNfCUsxf" ???? Which Edezhie should I use?
-  } else {
-    url.sA <- "https://drive.google.com/open?id=1LUxoY2-pgkCmmNH5goagBp3IMpj6YrdU"
-}
-
-  studyArea <- Cache(prepInputs,
-                             url = url.sA,
-                             destinationPath = getPaths()$inputPath[[1]],
-                             userTags = "studyArea", filename2 = NULL,
-                             omitArgs = c("destinationPath"))
-
-  rasterToMatch <- Cache(prepInputs, url = "https://drive.google.com/open?id=1fo08FMACr_aTV03lteQ7KsaoN9xGx1Df",
-                              studyArea = studyArea,
-                              targetFile = "RTM.tif", destinationPath = getPaths()$inputPath[[1]],
-                         filename2 = NULL,
-                              userTags = "RTM",
-                              omitArgs = c("destinationPath", "filename2"))
-  
-# Passing the uplandsRaster here makes sure that all computers can use it as the operations take up a lot of memory
-uplandsRaster <- prepInputs(targetFile = "uplandsNWT250m.tif", studyArea = studyArea, rasterToMatch = rasterToMatch,
-                            url = "https://drive.google.com/open?id=1EF67NCH7HqN6QZ0KGlpntB_Zcquu6NJe", 
-                            destinationPath = getPaths()$inputPath, filename2 = NULL)
-
-# Check the list of species available:
-showAvailableBirdSpecies()
-
-birdSpecies <- list.files(path = file.path(getwd(), "modules/birdsNWT/data/models"), pattern = "brt2.R")
-birdSpecies <- unlist(strsplit(birdSpecies, split = "brt2.R"))
-sppEquivCol <- "NWT"
- data("sppEquivalencies_CA", package = "LandR")
-  sppEquivalencies_CA[, NWT := c(Abie_Bal = "Abie_Bal", 
-                                 Betu_Pap = "Betu_Pap", 
-                                 Lari_Lar = "Lari_Lar", 
-                                 Pice_Gla = "Pice_Gla",
-                                 Pice_Mar = "Pice_Mar", 
-                                 Pinu_Ban = "Pinu_Ban", 
-                                 Pinu_Con = "Pinu_Con", 
-                                 Popu_Bal = "Popu_Bal", 
-                                 Popu_Tre = "Popu_Tre")[Boreal]]
-  
-  sppEquivalencies_CA <- sppEquivalencies_CA[!is.na(NWT)]
-  sppEquivalencies_CA$EN_generic_short <- sppEquivalencies_CA$NWT
-
-.objects <- list(
-  "birdsList" = c("AMRE", "BLPW", "CAWA", "FOSP", 
-"OSFL", "OVEN", "PAWA", "RCKI", "RUBL", "WCSP"), #birdSpecies,
-  "uplandsRaster" = uplandsRaster,
-    "rasterToMatch" = rasterToMatch,
-"studyArea" = studyArea,
- "sppEquiv" = sppEquivalencies_CA,
-    "sppEquivCol" = sppEquivCol)
-
-modules <- list("birdsNWT", "comm_metricsNWT")
-inputs <- list()
-outputs <- list()
-
-birds_noCS <- simInitAndSpades(times = times, params = parameters, modules = modules,
-                 objects = .objects, debug = 2)
-
-# WITH CS
-
-setPaths(modulePath = file.path(getwd(), "modules"), cachePath = file.path(getwd(), "cache"),
-         inputPath = file.path(getwd(), "outputs/08JUN19"), 
-         outputPath = file.path(getwd(), "outputs/08JUN19/birdPredictions"))
-getPaths() # shows where the 4 relevant paths are
-
-birds_CS <- simInitAndSpades(times = times, params = parameters, modules = modules,
-                 objects = .objects, debug = 2)
-
-birds_CS <- restartSpades()
+```{r moduleParams-birds-BRT, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_params <- SpaDES.core::moduleParams("birds_BRT", "..")
+knitr::kable(df_params, caption = "List of (ref:birds-BRT) parameters and their description.") |>
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
 ```
 
-### Retrieve results:
+### Events
 
-The bird prediction rasters can be found in `birdsNWT$birdPrediction`:
+<!-- TODO: describe module events -->
 
-```{r results1}
-ls.str(birdsNWT$birdPrediction)
+Describe what happens for each event type.
+
+### Plotting
+
+<!-- TODO: describe plot outputs -->
+
+Write what is plotted.
+
+### Saving
+
+<!-- TODO: describe file outputs -->
+
+Write what is saved.
+
+### Module outputs
+
+Description of the module outputs (Table \@ref(tab:moduleOutputs-birds-BRT)).
+
+```{r moduleOutputs-birds-BRT, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_outputs <- SpaDES.core::moduleOutputs("birds_BRT", "..")
+knitr::kable(df_outputs, caption = "List of (ref:birds-BRT) outputs and their description.") |>
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
 ```
 
-The bird models can be accessed using `birdsNWT$birdModels`:
+### Links to other modules
 
-```{r results2}
-ls.str(birdsNWT$birdModels)
-```
+Describe any anticipated linkages to other modules, such as modules that supply input data or do post-hoc analysis.
 
-At last, static and succession Layers can be seen using `birdsNWT$staticLayers` and `birdsNWT$successionLayers`, respectively:
+### Getting help
 
-```{r results3}
-ls.str(birdsNWT$staticLayers)
-ls.str(birdsNWT$successionLayers)
-```
+GitHub repository: <https://github.com/FOR-CAST/birds_BRT>
