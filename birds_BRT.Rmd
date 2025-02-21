@@ -112,4 +112,4 @@ Describe any anticipated linkages to other modules, such as modules that supply 
 
 ### Getting help
 
-GitHub repository: <https://github.com/FOR-CAST/birds_BRT>
+<https://github.com/FOR-CAST/birds_BRT/issues>
